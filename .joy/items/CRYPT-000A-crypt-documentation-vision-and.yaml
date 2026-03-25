@@ -1,0 +1,11 @@
+id: CRYPT-000A
+title: Crypt documentation Vision and Architecture
+type: task
+status: new
+priority: medium
+parent: CRYPT-0001
+capabilities:
+- implement
+effort: 2
+created: 2026-03-25T22:24:41.797118924Z
+updated: 2026-03-25T22:24:41.797118924Z

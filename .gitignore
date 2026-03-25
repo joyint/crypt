@@ -1,0 +1,8 @@
+.joy/config.yaml
+.joy/credentials.yaml
+.joy/ai/
+.claude/
+.qwen/
+.vibe/
+QWEN.md
+.github/copilot-instructions.md

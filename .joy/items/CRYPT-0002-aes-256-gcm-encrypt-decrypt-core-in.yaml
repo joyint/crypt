@@ -1,0 +1,13 @@
+id: CRYPT-0002
+title: AES-256-GCM encrypt/decrypt core in joy-crypt crate
+type: story
+status: new
+priority: high
+parent: CRYPT-0001
+capabilities:
+- plan
+- implement
+- review
+effort: 3
+created: 2026-03-25T22:24:41.776267260Z
+updated: 2026-03-25T22:24:41.776267260Z

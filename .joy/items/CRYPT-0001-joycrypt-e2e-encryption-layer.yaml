@@ -1,0 +1,15 @@
+id: CRYPT-0001
+title: JoyCrypt E2E encryption layer
+type: epic
+status: new
+priority: high
+capabilities:
+- conceive
+- plan
+effort: 7
+created: 2026-03-25T22:24:32.351589386Z
+updated: 2026-03-25T22:24:50.836300767Z
+comments:
+- author: horst.schwarz@joydev.com
+  date: 2026-03-25T22:24:50.836300241Z
+  text: 'See docs/dev/vision/JoyCrypt.md in the umbrella project. One crate (joy-crypt) used by Joy CLI, Judge, Platform, and Tauri App. AES-256-GCM, optional (key presence = enabled), Git filters for readable diffs. Solves two problems: local AI manipulation protection and server-side E2E.'

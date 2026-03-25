@@ -1,0 +1,13 @@
+id: CRYPT-0004
+title: Git clean/smudge filters for transparent encryption
+type: story
+status: new
+priority: high
+parent: CRYPT-0001
+capabilities:
+- plan
+- implement
+- review
+effort: 3
+created: 2026-03-25T22:24:41.781629977Z
+updated: 2026-03-25T22:24:41.781629977Z

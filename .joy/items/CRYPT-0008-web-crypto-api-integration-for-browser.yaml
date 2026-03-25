@@ -1,0 +1,13 @@
+id: CRYPT-0008
+title: Web Crypto API integration for browser-side decryption
+type: story
+status: new
+priority: medium
+parent: CRYPT-0001
+capabilities:
+- plan
+- implement
+- review
+effort: 3
+created: 2026-03-25T22:24:41.792020410Z
+updated: 2026-03-25T22:24:41.792020410Z

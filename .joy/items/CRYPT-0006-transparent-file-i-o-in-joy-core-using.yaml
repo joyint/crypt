@@ -1,0 +1,13 @@
+id: CRYPT-0006
+title: Transparent file I/O in joy-core using joy-crypt
+type: story
+status: new
+priority: high
+parent: CRYPT-0001
+capabilities:
+- plan
+- implement
+- review
+effort: 3
+created: 2026-03-25T22:24:41.786711228Z
+updated: 2026-03-25T22:24:41.786711228Z
