@@ -7,6 +7,7 @@
 //! when stored alongside other project metadata.
 
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
+use sha2::{Digest, Sha512};
 
 use crate::kdf::DerivedKey;
 use crate::Error;
@@ -63,6 +64,23 @@ impl Keypair {
     pub fn to_seed_bytes(&self) -> [u8; 32] {
         self.signing_key.to_bytes()
     }
+
+    /// Convert this Ed25519 signing key into an X25519 secret scalar
+    /// (32 bytes, bit-clamped). Used by the pairwise wrap path so the
+    /// same identity that signs Auth events also drives Crypt ECDH;
+    /// no separate keypair is stored. The conversion follows the
+    /// standard Ed25519-to-X25519 procedure: SHA-512 of the seed,
+    /// take the first 32 bytes, apply X25519 bit clamping.
+    pub fn to_x25519_secret_bytes(&self) -> [u8; 32] {
+        let seed = self.signing_key.to_bytes();
+        let hash = Sha512::digest(seed);
+        let mut secret = [0u8; 32];
+        secret.copy_from_slice(&hash[..32]);
+        secret[0] &= 248;
+        secret[31] &= 127;
+        secret[31] |= 64;
+        secret
+    }
 }
 
 impl PublicKey {
@@ -94,6 +112,14 @@ impl PublicKey {
     /// authenticated-data fields outside hex encoding.
     pub fn as_bytes(&self) -> [u8; 32] {
         self.0.to_bytes()
+    }
+
+    /// Convert this Ed25519 verification key to its X25519 (Montgomery
+    /// form) public counterpart. Pairs with
+    /// `Keypair::to_x25519_secret_bytes` for ECDH on the same identity
+    /// material. Returns 32 bytes suitable for `x25519_dalek::PublicKey`.
+    pub fn to_x25519_public_bytes(&self) -> [u8; 32] {
+        self.0.to_montgomery().to_bytes()
     }
 }
 

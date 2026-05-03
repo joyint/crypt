@@ -1,0 +1,16 @@
+id: CRYPT-000D-E7
+title: Add X25519 pairwise primitive for cross-member zone wraps
+type: task
+status: closed
+priority: high
+capabilities:
+- implement
+effort: 2
+created_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+created: 2026-05-03T17:18:43.466651Z
+updated: 2026-05-03T17:18:49.542491Z
+description: 'Mirror of joy-side JOY-0157-86: identity::Keypair gains to_x25519_secret_bytes + PublicKey::to_x25519_public_bytes (Ed25519->X25519 conversion via SHA-512 clamping and Montgomery form). New pairwise module computes X25519 ECDH + HKDF-SHA256 to produce a pairwise KEK from a local secret and a peer public, salted with the zone name. Used by joy-core/crypt for joy crypt grant.'
+comments:
+- author: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+  date: 2026-05-03T17:18:49.511130Z
+  text: 'Done: x25519-dalek + curve25519-dalek workspace deps; identity::Keypair::to_x25519_secret_bytes (SHA-512 + clamping) and PublicKey::to_x25519_public_bytes (to_montgomery). New pairwise module with pairwise_kek doing X25519 ECDH + HKDF-SHA256. 5 new tests in pairwise + extended identity tests.'
