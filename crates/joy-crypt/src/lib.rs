@@ -11,8 +11,12 @@
 #![forbid(unsafe_code)]
 
 pub mod aead;
+pub mod error;
 pub mod identity;
 pub mod kdf;
 pub mod session_wrap;
 pub mod wrap;
 pub mod zone;
+
+pub use error::Error;
+pub type Result<T> = std::result::Result<T, Error>;

@@ -3,3 +3,8 @@
 2026-05-03T10:54:05.308Z CRYPT-000B-B7 item.created "Initialize joy-crypt crate skeleton" [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
 2026-05-03T10:55:22.583Z CRYPT-000B-B7 comment.added "Done: workspace + crate skeleton committed. Cargo.toml workspace declares shared RustCrypto deps. crates/joy-crypt with package metadata, lib.rs forbids unsafe code and declares modules aead, identity, kdf, session_wrap, wrap, zone (stubs only). cargo check passes. No business logic; primitive implementations follow in subsequent items." [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
 2026-05-03T10:55:22.616Z CRYPT-000B-B7 item.status_changed "new -> closed" [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
+2026-05-03T15:15:15.149Z CRYPT-000C-A4 item.created "Implement core crypto primitives in joy-crypt" [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
+2026-05-03T15:15:19.332Z CRYPT-000C-A4 item.status_changed "new -> in-progress" [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
+2026-05-03T15:33:34.556Z CRYPT-000C-A4 comment.added "Done: kdf (Salt, DerivedKey, generate_salt, derive_argon2id with fast-kdf feature, derive_hkdf_sha256), identity (Keypair, PublicKey with from_seed/from_random/from_derived_key/from_signing_key, sign/verify, hex codec), aead (seal/open AES-256-GCM), wrap (random-nonce-prefix wrap/unwrap), error (thiserror enum). Deps added: rand, hkdf, sha2, hex. 30 unit tests, all green." [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
+2026-05-03T15:33:34.587Z CRYPT-000C-A4 item.status_changed "in-progress -> review" [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
+2026-05-03T15:33:34.617Z CRYPT-000C-A4 item.status_changed "review -> closed" [ai:claude@joy delegated-by:horst.schwarz@joydev.com]

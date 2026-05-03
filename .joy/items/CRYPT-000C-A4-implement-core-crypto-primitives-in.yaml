@@ -1,0 +1,18 @@
+id: CRYPT-000C-A4
+title: Implement core crypto primitives in joy-crypt
+type: task
+status: closed
+priority: high
+assignees:
+- member: ai:claude@joy
+capabilities:
+- implement
+effort: 3
+created_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+created: 2026-05-03T15:15:15.138337Z
+updated: 2026-05-03T15:33:34.610003Z
+description: 'Fill the joy-crypt module stubs with working primitives migrated from joy-core/auth: kdf (Salt, DerivedKey, generate_salt, derive_argon2id with fast-kdf feature flag, derive_hkdf_sha256), identity (Keypair, PublicKey with from_seed/from_random/from_derived_key, sign, verify, hex codec), aead (AES-256-GCM seal/open), wrap (AES-GCM with random 12-byte nonce prefix for seed and zone-key wrapping), error (thiserror enum). Add deps: hkdf, sha2, hex. Tests for all primitives. Driven by joy task JOY-0156-02 and ADR-039 "Crate boundary".'
+comments:
+- author: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+  date: 2026-05-03T15:33:34.548369Z
+  text: 'Done: kdf (Salt, DerivedKey, generate_salt, derive_argon2id with fast-kdf feature, derive_hkdf_sha256), identity (Keypair, PublicKey with from_seed/from_random/from_derived_key/from_signing_key, sign/verify, hex codec), aead (seal/open AES-256-GCM), wrap (random-nonce-prefix wrap/unwrap), error (thiserror enum). Deps added: rand, hkdf, sha2, hex. 30 unit tests, all green.'
