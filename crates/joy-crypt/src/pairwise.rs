@@ -23,7 +23,11 @@ use crate::kdf::derive_hkdf_sha256;
 
 /// Compute the pairwise KEK between a local secret and a peer public,
 /// salted with `info` (typically the zone name plus a fixed tag).
-pub fn pairwise_kek(my_x25519_secret: &[u8; 32], peer_x25519_public: &[u8; 32], info: &[u8]) -> [u8; 32] {
+pub fn pairwise_kek(
+    my_x25519_secret: &[u8; 32],
+    peer_x25519_public: &[u8; 32],
+    info: &[u8],
+) -> [u8; 32] {
     let secret = StaticSecret::from(*my_x25519_secret);
     let peer = PublicKey::from(*peer_x25519_public);
     let shared = secret.diffie_hellman(&peer);
@@ -36,7 +40,10 @@ mod tests {
     use crate::identity::{Keypair, PublicKey as IdPublicKey};
 
     fn roundtrip_pair() -> (Keypair, Keypair) {
-        (Keypair::from_seed(&[1u8; 32]), Keypair::from_seed(&[2u8; 32]))
+        (
+            Keypair::from_seed(&[1u8; 32]),
+            Keypair::from_seed(&[2u8; 32]),
+        )
     }
 
     #[test]

@@ -100,10 +100,12 @@ impl PublicKey {
     /// Decode from hex string.
     pub fn from_hex(s: &str) -> Result<Self, Error> {
         let bytes = hex::decode(s).map_err(|e| Error::InvalidHex(e.to_string()))?;
-        let arr: [u8; 32] = bytes.try_into().map_err(|v: Vec<u8>| Error::InvalidLength {
-            expected: 32,
-            got: v.len(),
-        })?;
+        let arr: [u8; 32] = bytes
+            .try_into()
+            .map_err(|v: Vec<u8>| Error::InvalidLength {
+                expected: 32,
+                got: v.len(),
+            })?;
         let key = VerifyingKey::from_bytes(&arr).map_err(|_| Error::InvalidPublicKey)?;
         Ok(Self(key))
     }
