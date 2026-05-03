@@ -1,0 +1,16 @@
+id: CRYPT-000B-B7
+title: Initialize joy-crypt crate skeleton
+type: task
+status: closed
+priority: high
+capabilities:
+- implement
+effort: 3
+created_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+created: 2026-05-03T10:54:05.301511Z
+updated: 2026-05-03T10:55:22.609490Z
+description: 'Cargo workspace at crypt/ with member crates/joy-crypt. RustCrypto deps (argon2, ed25519-dalek, aes-gcm, zeroize, secrecy, rand_core, thiserror). Module stubs: aead, identity, kdf, session_wrap, wrap, zone. No business logic. Driven by joy decision JOY-0154-3C and task JOY-0155-D0; rationale in ADR-039 (joyint umbrella).'
+comments:
+- author: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+  date: 2026-05-03T10:55:22.572072Z
+  text: 'Done: workspace + crate skeleton committed. Cargo.toml workspace declares shared RustCrypto deps. crates/joy-crypt with package metadata, lib.rs forbids unsafe code and declares modules aead, identity, kdf, session_wrap, wrap, zone (stubs only). cargo check passes. No business logic; primitive implementations follow in subsequent items.'

@@ -1,0 +1,16 @@
+[package]
+name = "joy-crypt"
+version = "0.1.0"
+description = "Cryptographic primitives for Joy: KDF, AEAD, Ed25519, key wrapping"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+argon2 = { workspace = true }
+ed25519-dalek = { workspace = true }
+aes-gcm = { workspace = true }
+zeroize = { workspace = true }
+secrecy = { workspace = true }
+rand_core = { workspace = true }
+thiserror = { workspace = true }

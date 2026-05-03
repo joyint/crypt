@@ -6,3 +6,6 @@
 .vibe/
 QWEN.md
 .github/copilot-instructions.md
+
+# Rust
+/target/

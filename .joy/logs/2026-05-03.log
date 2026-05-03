@@ -1,0 +1,5 @@
+2026-05-03T10:51:05.133Z CRYPT-000B-D0 guard.denied "horst.schwarz@joydev.com must authenticate to perform this action. Run `joy auth`." [horst.schwarz@joydev.com]
+2026-05-03T10:52:32.103Z auth auth.session_created "session created for ai:claude@joy via delegation token" [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
+2026-05-03T10:54:05.308Z CRYPT-000B-B7 item.created "Initialize joy-crypt crate skeleton" [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
+2026-05-03T10:55:22.583Z CRYPT-000B-B7 comment.added "Done: workspace + crate skeleton committed. Cargo.toml workspace declares shared RustCrypto deps. crates/joy-crypt with package metadata, lib.rs forbids unsafe code and declares modules aead, identity, kdf, session_wrap, wrap, zone (stubs only). cargo check passes. No business logic; primitive implementations follow in subsequent items." [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
+2026-05-03T10:55:22.616Z CRYPT-000B-B7 item.status_changed "new -> closed" [ai:claude@joy delegated-by:horst.schwarz@joydev.com]

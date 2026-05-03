@@ -15,4 +15,11 @@ members:
       assign: {}
   horst.schwarz@joydev.com:
     capabilities: all
+    verify_key: c138d2b6f4c911bb1478cbf329bc39cdbf29597652147c0c03d9a05afc468900
+    kdf_nonce: 7956afdc9245ea349e6aa4659435d546ae6a4559a96520469331a6ca609923b2
+    ai_delegations:
+      ai:claude@joy:
+        delegation_verifier: 61f511603f54d91e201d2acdb3d5c5fab53e850773324abd6957271cbc3e2bde
+        delegation_salt: a9ebdbcd382e99c35c084978d64a46004bdb0f66a9e5d4ddeaa4ae7b228442fa
+        created: 2026-05-03T10:52:15.153683Z
 created: 2026-03-25T22:22:37.107652684Z
