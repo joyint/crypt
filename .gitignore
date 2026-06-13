@@ -9,3 +9,10 @@ QWEN.md
 
 # Rust
 /target/
+
+### joy:start -- managed by joy, do not edit manually
+.joy/config.yaml
+.joy/credentials.yaml
+.joy/hooks/
+.joy/project.defaults.yaml
+### joy:end
