@@ -9,17 +9,21 @@ validity: replaced
 replaced_by: CRYPT-000F-B2
 created_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
 created: 2026-06-15T06:38:09.364504Z
-updated: 2026-06-15T06:38:09.526164Z
+updated: 2026-06-15T20:38:59.568487Z
 updated_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
 history:
 - date: 2026-06-15T06:38:09.442387Z
   by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
 - date: 2026-06-15T06:38:09.526164Z
   by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
-description: |-
-  **Status:** Superseded (2026-05) by ADR-038: Selective encryption with optional whole-project mode (JI-011B-08)
+- date: 2026-06-15T20:33:43.429456Z
+  by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+- date: 2026-06-15T20:38:59.568487Z
+  by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+description: |
+  **Status:** Superseded (2026-05) by CRYPT-000F-B2: Selective encryption with optional whole-project mode CRYPT-000F-B2
 
-  The whole-project E2E default specified below is no longer the model. Encryption in Joy is selective by default; whole-project encryption is available as an explicit `--all` choice. See ADR-038 and [`docs/dev/vision/guardianship/Crypt.md`](https://docs.int.joydev.com/doc/crypt-selective-encryption-for-joy-dqDnSlnAqC) for the current design.
+  The whole-project E2E default specified below is no longer the model. Encryption in Joy is selective by default; whole-project encryption is available as an explicit `--all` choice. See CRYPT-000F-B2 and [`docs/dev/vision/guardianship/Crypt.md`](https://docs.int.joydev.com/doc/crypt-selective-encryption-for-joy-dqDnSlnAqC) for the current design.
 
   ## Context
 
@@ -46,5 +50,3 @@ description: |-
   The server stores only encrypted blobs plus cleartext metadata. No access to sensitive content. CalDAV integration requires explicit trust delegation from the user -- privacy is the default, convenience is opt-in.
 
   Trade-off: full-text search requires client-side decryption (slower for large projects). Cleartext metadata exposes structure (how many items, their status distribution) but not content.
-
-  (Relocated from umbrella JI-00FB-95 as part of the JI-0120 architecture reconciliation.)

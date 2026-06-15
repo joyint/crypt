@@ -8,19 +8,23 @@ capabilities:
 validity: accepted
 created_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
 created: 2026-06-15T06:38:08.485384Z
-updated: 2026-06-15T06:38:08.562894Z
+updated: 2026-06-15T20:38:59.205268Z
 updated_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
 history:
 - date: 2026-06-15T06:38:08.562894Z
   by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
-description: |-
+- date: 2026-06-15T20:33:42.967248Z
+  by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+- date: 2026-06-15T20:38:59.205268Z
+  by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+description: |
   **Status:** Accepted (2026-05)
 
-  **Replaces sections of:** [Auth.md](https://docs.int.joydev.com/doc/auth-identity-and-authentication-for-joy-komQW0PZFp) "Identity key derivation" and "Key hierarchy". Schema additions complement ADR-035 (JI-0118-CC). Wording impact noted in ADR-037 (JI-011A-41).
+  **Replaces sections of:** [Auth.md](https://docs.int.joydev.com/doc/auth-identity-and-authentication-for-joy-komQW0PZFp) "Identity key derivation" and "Key hierarchy". Schema additions complement JOY-01E2-0B. Wording impact noted in CRYPT-000E-1E.
 
   ## Context
 
-  ADR-035 documented the Auth schema under the assumption that the identity keypair is derived deterministically from passphrase + kdf_nonce via Argon2id. Auth.md left key recovery as an open question. With Crypt active, a forgotten passphrase means lost identity and lost access to encrypted content - an intolerable outcome for solo and small-team setups, where multiple Tier-1 members are not available as mutual recovery.
+  JOY-01E2-0B documented the Auth schema under the assumption that the identity keypair is derived deterministically from passphrase + kdf_nonce via Argon2id. Auth.md left key recovery as an open question. With Crypt active, a forgotten passphrase means lost identity and lost access to encrypted content - an intolerable outcome for solo and small-team setups, where multiple Tier-1 members are not available as mutual recovery.
 
   The deterministic-derivation model has the advertised property "no key file to transport between machines": passphrase plus public kdf_nonce reproduce the keypair on any machine. The cost of that property is structural: there is no path to keep the keypair stable across a passphrase change, and no recovery primitive other than "another member re-grants you". For the dominant single-user case this is unacceptable.
 
@@ -52,7 +56,7 @@ description: |-
 
   **Migration is non-disruptive.** On first `joy auth` after upgrade, joy detects the legacy member entries (no `seed_wrap_*`), derives the seed via the legacy passphrase + kdf_nonce path, generates a fresh recovery key, writes both wraps to `project.yaml`. Identity keypair is preserved; existing Crypt wraps continue to work.
 
-  **ADR-037 wording impact.** Delegation key derivation that previously read "from passphrase + delegation_salt" now reads "from the unwrapped seed + delegation_salt"; the multi-machine property (no `project.yaml` write per machine switch) and the local cache behaviour at `~/.local/state/joy/delegations/` are unchanged. ADR-037 itself remains accepted; only the source of the seed material changes.
+  **CRYPT-000E-1E wording impact.** Delegation key derivation that previously read "from passphrase + delegation_salt" now reads "from the unwrapped seed + delegation_salt"; the multi-machine property (no `project.yaml` write per machine switch) and the local cache behaviour at `~/.local/state/joy/delegations/` are unchanged. CRYPT-000E-1E itself remains accepted; only the source of the seed material changes.
 
   ## Crate boundary and dependency direction
 
@@ -83,9 +87,7 @@ description: |-
 
   * [Auth.md](https://docs.int.joydev.com/doc/auth-identity-and-authentication-for-joy-komQW0PZFp) - identity key derivation, key hierarchy, recovery sections updated to match this ADR.
   * [SECURITY.md template](https://github.com/joyint/joy/blob/HEAD/crates/joy-core/templates/SECURITY.md) - public-fields description updated for the new wraps.
-  * ADR-035 (JI-0118-CC) - Auth schema fields, complemented by `seed_wrap_passphrase` and `seed_wrap_recovery`.
-  * ADR-037 (JI-011A-41) - delegation key derivation, wording impact noted above.
-  * ADR-038 (JI-011B-08) - selective Crypt model that defers recovery to Auth.
+  * JOY-01E2-0B - Auth schema fields, complemented by `seed_wrap_passphrase` and `seed_wrap_recovery`.
+  * CRYPT-000E-1E - delegation key derivation, wording impact noted above.
+  * CRYPT-000F-B2 - selective Crypt model that defers recovery to Auth.
   * Implementation: epic JOY-0145-51 (Encryption layer for project items and files), story JOY-0147-85 (Wrapped-seed Auth model with passphrase and recovery wraps), story JOY-014C-29 (Lazy migration of existing projects to wrapped-seed).
-
-  (Relocated from umbrella JI-011C-EA as part of the JI-0120 architecture reconciliation.)

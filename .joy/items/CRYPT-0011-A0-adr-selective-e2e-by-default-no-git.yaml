@@ -8,25 +8,29 @@ capabilities:
 validity: accepted
 created_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
 created: 2026-06-15T06:38:08.781418Z
-updated: 2026-06-15T06:38:08.859384Z
+updated: 2026-06-15T20:38:59.327868Z
 updated_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
 history:
 - date: 2026-06-15T06:38:08.859384Z
   by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
-description: |-
+- date: 2026-06-15T20:33:43.099966Z
+  by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+- date: 2026-06-15T20:38:59.327868Z
+  by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+description: |
   **Status:** Accepted (2026-05)
 
-  **Amends:** ADR-038: Selective encryption with optional whole-project mode (JI-011B-08). The "Server-side exposure" section of ADR-038 is superseded by this ADR. The selective-encryption model itself (default zone, named zones, `--all`, AI access bound to Jobs) stays in effect.
+  **Amends:** CRYPT-000F-B2: Selective encryption with optional whole-project mode CRYPT-000F-B2. The "Server-side exposure" section of CRYPT-000F-B2 is superseded by this ADR. The selective-encryption model itself (default zone, named zones, `--all`, AI access bound to Jobs) stays in effect.
 
   ## Context
 
-  ADR-038 chose a clean / smudge / textconv filter pipeline that decrypts working-directory ciphertext on `git add` so the forge would receive plaintext. The trade-off was explicit: protect the local working directory against AI tools that read files raw, but accept that the forge sees plaintext to keep PR diffs / blame / web view working.
+  CRYPT-000F-B2 chose a clean / smudge / textconv filter pipeline that decrypts working-directory ciphertext on `git add` so the forge would receive plaintext. The trade-off was explicit: protect the local working directory against AI tools that read files raw, but accept that the forge sees plaintext to keep PR diffs / blame / web view working.
 
   Two issues emerged in the implementation (JOY-014B-09):
 
 
   1. **The CLI side broke.** Once Git's smudge filter encrypted a file in the working directory, every subsequent `joy show`, `joy ls`, `joy edit` on that item failed with a YAML parse error. `joy-core/store::read_yaml` had no decrypt path; it tried to parse a `JOYCRYPT` blob as YAML and the read aborted. `joy ls` with even one encrypted item returned an error to the user. The Crypt feature was effectively unusable.
-  2. **The forge-plaintext trade-off does not hold for the customers who actually need Crypt.** The customer interviews behind ADR-038 surfaced "NDA-bound, embargo'd, multi-tenant separation". That pool of users does not benefit from forge-side review tools showing their NDA content - they need it shielded from the forge operator at least as strongly as from local AI. ADR-038's "forge sees plaintext" was a developer-comfort optimisation that conflicts with the stated customer requirement.
+  2. **The forge-plaintext trade-off does not hold for the customers who actually need Crypt.** The customer interviews behind CRYPT-000F-B2 surfaced "NDA-bound, embargo'd, multi-tenant separation". That pool of users does not benefit from forge-side review tools showing their NDA content - they need it shielded from the forge operator at least as strongly as from local AI. CRYPT-000F-B2's "forge sees plaintext" was a developer-comfort optimisation that conflicts with the stated customer requirement.
 
   A third issue is structural: holding zone keys in a session-file sidecar (so the smudge subprocess could decrypt without prompting) put plaintext-equivalent secrets on the same filesystem as the AI tool the design tried to protect against, weakening the security model exactly where it matters.
 
@@ -49,7 +53,7 @@ description: |-
 
   **Implementation is markedly smaller.** No filter binary, no `.gitattributes` management, no `git config` wiring, no setup-on-first-add logic, no zone-keys sidecar lifecycle. The Crypt CLI surface is a set of ordinary Joy verbs that prompt for the passphrase like any other authenticated action.
 
-  **Recovery story unchanged.** Recovery flows from Auth (ADR-039); zone wraps remain decryptable as long as the member's identity keypair is recoverable.
+  **Recovery story unchanged.** Recovery flows from Auth (CRYPT-0010-5A); zone wraps remain decryptable as long as the member's identity keypair is recoverable.
 
   **Marketing language clarifies.** "Selective E2E" replaces the earlier "encryption against AI in the working directory". Joyint's optional decrypt-gateway role is a documented trust-anchor offering, not a hidden compromise.
 
@@ -63,10 +67,8 @@ description: |-
 
   ## Related
 
-  * ADR-006 (JI-00FB-95) - original whole-project encryption design (superseded by ADR-038).
-  * ADR-038 (JI-011B-08) - selective encryption (in effect; Server-side exposure section amended here).
-  * ADR-039 (JI-011C-EA) - wrapped-seed Auth, used by Crypt for key wrapping.
+  * CRYPT-0013-D7 - original whole-project encryption design (superseded by CRYPT-000F-B2).
+  * CRYPT-000F-B2 - selective encryption (in effect; Server-side exposure section amended here).
+  * CRYPT-0010-5A - wrapped-seed Auth, used by Crypt for key wrapping.
   * [Crypt.md](https://docs.int.joydev.com/doc/crypt-selective-encryption-for-joy-dqDnSlnAqC) - the operational spec; current text reflects this ADR.
   * Implementation: [JOY-015A-FD](https://github.com/joyint/joy/blob/HEAD/.joy/items/JOY-015A-FD-repair-crypt-encrypt-on-disk-file.yaml).
-
-  (Relocated from umbrella JI-011D-FA as part of the JI-0120 architecture reconciliation.)
