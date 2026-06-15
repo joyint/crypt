@@ -1,0 +1,91 @@
+id: CRYPT-0010-5A
+title: 'ADR: Wrapped-seed identity model with recovery key'
+type: decision
+status: closed
+priority: medium
+capabilities:
+- conceive
+validity: accepted
+created_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+created: 2026-06-15T06:38:08.485384Z
+updated: 2026-06-15T06:38:08.562894Z
+updated_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+history:
+- date: 2026-06-15T06:38:08.562894Z
+  by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+description: |-
+  **Status:** Accepted (2026-05)
+
+  **Replaces sections of:** [Auth.md](https://docs.int.joydev.com/doc/auth-identity-and-authentication-for-joy-komQW0PZFp) "Identity key derivation" and "Key hierarchy". Schema additions complement ADR-035 (JI-0118-CC). Wording impact noted in ADR-037 (JI-011A-41).
+
+  ## Context
+
+  ADR-035 documented the Auth schema under the assumption that the identity keypair is derived deterministically from passphrase + kdf_nonce via Argon2id. Auth.md left key recovery as an open question. With Crypt active, a forgotten passphrase means lost identity and lost access to encrypted content - an intolerable outcome for solo and small-team setups, where multiple Tier-1 members are not available as mutual recovery.
+
+  The deterministic-derivation model has the advertised property "no key file to transport between machines": passphrase plus public kdf_nonce reproduce the keypair on any machine. The cost of that property is structural: there is no path to keep the keypair stable across a passphrase change, and no recovery primitive other than "another member re-grants you". For the dominant single-user case this is unacceptable.
+
+  ## Decision
+
+  Replace the deterministic-derivation model with a wrapped-seed model.
+
+
+  1. Each member has a randomly generated 32-byte seed, created at `joy auth init`. The Ed25519 identity keypair derives from this seed.
+  2. The seed is stored in `.joy/project.yaml` under the member entry as two AES-256-GCM ciphertexts:
+     * `seed_wrap_passphrase`: encrypted under a KEK derived from passphrase + kdf_nonce via Argon2id.
+     * `seed_wrap_recovery`: encrypted under a KEK derived from a recovery key via Argon2id.
+  3. The recovery key is generated at `joy auth init`, displayed once, and stored externally by the user. It is never written to the repo.
+  4. Either wrap unlocks the same seed; the keypair stays stable across passphrase changes.
+  5. CLI surface extends the existing `joy auth recover`:
+     * `joy auth recover --recovery-key`: passphrase-loss recovery; user provides the recovery key, sets a new passphrase, joy re-wraps `seed_wrap_passphrase`.
+     * `joy auth recover --regenerate-key`: rotates the recovery key (requires an authenticated session); joy re-wraps `seed_wrap_recovery` only.
+  6. Brute-force resistance is bounded by Argon2id parameters and passphrase entropy. AES-256-GCM provides authenticated encryption; tampering is detected on unwrap.
+
+  ## Consequences
+
+  **Recovery available without other members.** Solo setups have a real recovery path. Team setups gain a per-member recovery option in addition to mutual re-grant by other Tier-1 members.
+
+  **No Crypt re-wrap on passphrase change.** Because the keypair is stable, all Crypt zone wraps for a member remain valid when their passphrase rotates. JOY-0103-87 ("Crypt re-wrap on member passphrase change") becomes obsolete and is closed.
+
+  **No Crypt-side recovery key needed.** Crypt inherits recovery transparently from Auth: as long as Auth can restore the same keypair, Crypt zone wraps remain decryptable. JOY-00BC-A1 ("Recovery key generation at joy crypt init") is obsolete and is closed.
+
+  **"No key transport" property changed.** The repo now contains a long-term encrypted artifact (the seed wraps) rather than nothing. The trade-off is acceptable because the wraps are AES-256-GCM ciphertext under Argon2id-derived keys, equivalent to the encrypted-vault pattern accepted in regulated environments. SECURITY.md template is updated to describe the new fields and to argue from primitives (NIST SP 800-38D, RFC 9106) without naming third-party products.
+
+  **Migration is non-disruptive.** On first `joy auth` after upgrade, joy detects the legacy member entries (no `seed_wrap_*`), derives the seed via the legacy passphrase + kdf_nonce path, generates a fresh recovery key, writes both wraps to `project.yaml`. Identity keypair is preserved; existing Crypt wraps continue to work.
+
+  **ADR-037 wording impact.** Delegation key derivation that previously read "from passphrase + delegation_salt" now reads "from the unwrapped seed + delegation_salt"; the multi-machine property (no `project.yaml` write per machine switch) and the local cache behaviour at `~/.local/state/joy/delegations/` are unchanged. ADR-037 itself remains accepted; only the source of the seed material changes.
+
+  ## Crate boundary and dependency direction
+
+  This ADR fixes a question Auth.md left open (Open Question #5): where the cryptographic primitives live and which crate depends on which. Decision:
+
+  `joy-crypt` is a **leaf crate** owning all cryptographic primitives in the joy ecosystem: Argon2id KDF, AES-256-GCM AEAD, Ed25519 sign/verify, seed wrapping/unwrapping, zone keys, Job-bound session wraps, plus secret-handling helpers (zeroize/secrecy wrappers).
+
+  `joy-core/auth` keeps the identity application layer: session-file format and storage, delegation-token construction and validation, OTP flow, and the `project.yaml` schema fields (`seed_wrap_*`, `kdf_nonce`, `verify_key`, `ai_delegations`). It depends on `joy-crypt` for every primitive call.
+
+  This is a migration of existing code, not a green-field move. Auth is already implemented in `joy-core` and pulls `argon2`, `ed25519-dalek`, `sha2`, `zeroize` directly. Lifting these primitives into `joy-crypt` happens before any new Crypt code is written, so that Crypt's zone keys, content encryption, and Job-bound wraps reuse the same boundary instead of duplicating wrapper code.
+
+  Reasons for the leaf direction:
+
+
+  1. **No duplication.** Both Auth and Crypt need the same primitives. A leaf crate owns them once; both layers consume the same API.
+  2. **Reusability.** `judge-core`, the platform server, and the browser implementation can pull `joy-crypt` without touching the joy item or auth-token model.
+  3. **Hot-path performance.** Crypt sits on every read/write of a marked item and on every Git clean/smudge invocation. Compile-time inlining of a leaf crate is cheaper than any subprocess plugin and avoids dependency cycles.
+  4. **Testability.** Crypto primitives can be unit-tested without YAML fixtures or session state.
+
+  Earlier wording in Auth.md ("Auth is part of joy-core ... joy-crypt depends on joy-core for identity keys") inverted this. That sentence is superseded by this section.
+
+  **Out of scope.**
+
+  * Hardware-backed key storage (HSM, TPM). Neither the current nor the new model addresses this; it remains a separate concern for high-assurance deployments.
+  * Post-quantum primitives. Ed25519 and AES-256 retain their pre-existing positions; this ADR does not change the post-quantum posture.
+
+  ## Related
+
+  * [Auth.md](https://docs.int.joydev.com/doc/auth-identity-and-authentication-for-joy-komQW0PZFp) - identity key derivation, key hierarchy, recovery sections updated to match this ADR.
+  * [SECURITY.md template](https://github.com/joyint/joy/blob/HEAD/crates/joy-core/templates/SECURITY.md) - public-fields description updated for the new wraps.
+  * ADR-035 (JI-0118-CC) - Auth schema fields, complemented by `seed_wrap_passphrase` and `seed_wrap_recovery`.
+  * ADR-037 (JI-011A-41) - delegation key derivation, wording impact noted above.
+  * ADR-038 (JI-011B-08) - selective Crypt model that defers recovery to Auth.
+  * Implementation: epic JOY-0145-51 (Encryption layer for project items and files), story JOY-0147-85 (Wrapped-seed Auth model with passphrase and recovery wraps), story JOY-014C-29 (Lazy migration of existing projects to wrapped-seed).
+
+  (Relocated from umbrella JI-011C-EA as part of the JI-0120 architecture reconciliation.)

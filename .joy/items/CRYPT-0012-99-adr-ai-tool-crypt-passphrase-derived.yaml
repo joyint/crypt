@@ -1,0 +1,226 @@
+id: CRYPT-0012-99
+title: 'ADR: AI Tool Crypt - passphrase-derived delegation, scoped tokens'
+type: decision
+status: closed
+priority: medium
+capabilities:
+- conceive
+validity: accepted
+created_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+created: 2026-06-15T06:38:09.072652Z
+updated: 2026-06-15T06:38:09.151603Z
+updated_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+history:
+- date: 2026-06-15T06:38:09.151603Z
+  by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+description: |-
+  **Status:** Accepted (2026-05)
+
+  **Amends:** ADR-033 (JI-0116-52) §1 (delegation keypair derivation: file-stored privkey replaced by passphrase-derived). ADR-038 (JI-011B-08) §AI access (refines AI Tool path; AI Automation Job-bound stays). ADR-040 (JI-011D-FA) (extends "no Crypt secrets on disk" property to AI Tool delegation privkeys).
+
+  ## Context
+
+  The current Crypt access model for AI members (under ADR-038, ADR-040, [Crypt.md §AI access via Jobs](https://docs.int.joydev.com/doc/crypt-selective-encryption-for-joy-dqDnSlnAqC)) is **Job-bound**: the platform issues one wrap per Job, validity ends with the Job's lifecycle. That model fits **AI Automation** (Joyint platform schedules the work) but not **AI Tool** use, where an operator runs Claude Code, Qwen, Mistral Vibe, Copilot etc. locally and the AI works against the project across hours and many items without an enclosing platform-Job.
+
+  Three constraints emerged from operational discussion of an earlier per-token draft of this ADR:
+
+
+  1. **No** `**project.yaml**` **writes per** `**joy auth token add**`**.** Per-token entries scale O(tokens) and produce visible repo churn at any team size beyond a handful. A fresh token on every machine, every day, is an operator setup event - it must not commit.
+  2. **No machine concept in** `**project.yaml**`**.** Machine names, machine IDs, hardware fingerprints, and "machine_hint" labels are all rejected. The only identities the schema knows are members (humans, AIs).
+  3. **No long-lived AI Tool privkey on disk anywhere.** ADR-033 §1's on-disk file at `~/.local/state/joy/delegations/<project>/<ai-member>.key` is itself a contradiction of "no Crypt secrets on disk" once the delegation key also serves as the Crypt unwrap key. The whole class needs to go.
+
+  The earlier draft of this ADR (per-token keypair, per-token entry under `members.<human>.ai_delegations.<ai>.tokens.<token-id>`, per-token wraps under `crypt.zones.<zone>.delegations.<ai>.<token-id>`) violated constraints 1 and 2 and did not address 3. This revision reworks the design from those constraints.
+
+  ## Decision
+
+  ### 1. Delegation keypair is passphrase-derived, never persisted
+
+  The stable per-(operator, AI) delegation keypair from ADR-033 §1 is retained as the auth-and-Crypt principal. Its **derivation** changes:
+
+  ```
+  delegation_seed     = HKDF-SHA256(
+                          ikm  = operator_seed,
+                          salt = delegation_salt,
+                          info = "ai-delegation:" || ai_member_id)
+  delegation_keypair  = Ed25519 from delegation_seed
+  ```
+
+  `operator_seed` is the random 32-byte seed wrapped under the operator's passphrase per ADR-039 (JI-011C-EA), unwrapped in process memory at passphrase prompt, used for the signing or wrap operation, then discarded.
+
+  `delegation_salt` is a random 32-byte value stored in `project.yaml` alongside `delegation_verifier` (the derived public key) under the operator's member entry. It is the rotation handle: a fresh salt produces a fresh keypair from the same seed.
+
+  ADR-033 §1's on-disk file at `~/.local/state/joy/delegations/<project>/<ai-member>.key` is **removed**. Joy reads no file for AI Tool delegation private material. Every operator action that needs the privkey re-derives it from the passphrase prompt that the same command already requires for any authenticated mutation.
+
+  ### 2. `project.yaml` shape
+
+  ```yaml
+  members:
+    alice@team.com:
+      verify_key: 05ae823757...
+      seed_wrap_passphrase: ...
+      seed_wrap_recovery: ...
+      kdf_nonce: ...
+      ai_delegations:
+        ai:claude@joy:
+          delegation_verifier: "<derived ed25519 pk>"   # = Ed25519(HKDF(seed, salt, "ai-delegation:ai:claude@joy"))
+          delegation_salt: "<random 32 bytes hex>"       # rotation handle
+          created: "2026-05-01T10:00:00Z"
+
+  crypt:
+    zones:
+      customer-x:
+        paths: [...]
+        delegations:
+          ai:claude@joy:
+            alice@team.com: <wrap of customer-x zone key against alices delegation pubkey>
+            pete@team.org:  <wrap of customer-x zone key against petes delegation pubkey>
+  ```
+
+  One `ai_delegations.<ai>` entry per (operator, AI), written **once** at first delegation creation and rewritten only on rotation.
+
+  One `crypt.zones.<zone>.delegations.<ai>.<operator>` wrap entry per (operator, AI, zone), written by `joy crypt grant`, removed by `joy crypt revoke` or by rotation.
+
+  ### 3. Tokens are scope-flagged; only `--crypt` tokens carry the delegation privkey
+
+  A token has a `scopes` claim. Two scope sets are defined in this ADR:
+
+  * `["auth"]` (default): the AI may run joy commands as the AI member. May not unwrap zone keys.
+  * `["auth", "crypt"]` (explicit `--crypt`): in addition to auth, the AI may unwrap zone keys for any zone the operator's delegation has wraps for.
+
+  Token wire format under `["auth"]`:
+
+  ```
+  { claims, delegator_signature, binding_signature }
+  ```
+
+  Token wire format under `["auth", "crypt"]`:
+
+  ```
+  { claims, delegator_signature, binding_signature, delegation_privkey }
+  ```
+
+  `delegation_privkey` is included **only** in `--crypt` tokens. It is the operator's Ed25519 delegation private key for this (operator, AI), re-derived in memory at issuance from the operator's passphrase, embedded in the token, then discarded from operator-process memory.
+
+  Lifetime: the privkey lives in the token string while it travels (chat handoff, argv at redemption), in the AI's `JOY_SESSION` env var while a session is active, and in process memory during each Crypt-touching joy command. It is never written to disk, neither on the operator's nor on the AI's machine.
+
+  Token issuance writes **zero** to `project.yaml`. Both signatures are produced from the operator's seed (delegator-sig with the operator's identity key, binding-sig with the freshly re-derived delegation key); no schema mutation is involved.
+
+  ### 4. Crypt wrap target is the delegation pubkey
+
+  `joy crypt grant ai:<id> --zone <name>` writes:
+
+  ```yaml
+  crypt:
+    zones:
+      <name>:
+        delegations:
+          ai:<id>:
+            <operator-1>: <X25519-wrap-against-operator-1-delegation-pubkey>
+            <operator-2>: <X25519-wrap-against-operator-2-delegation-pubkey>
+            ...
+  ```
+
+  One wrap per existing operator-delegation for that AI in the project. The X25519 ECDH conversion of the Ed25519 delegation pubkey is the same construction ADR-039 uses for member-level wraps.
+
+  Wrap count is O(operators × AIs × zones), bounded by team setup. Token issuance does not touch this map.
+
+  ### 5. Token redemption and JOY_SESSION
+
+  `joy auth --token <T>` performs:
+
+
+  1. Verify `expires` claim against current time. Reject if past.
+  2. Verify delegator signature against `members.<delegated-by>.verify_key` in `project.yaml`.
+  3. Verify binding signature against `members.<delegated-by>.ai_delegations.<ai>.delegation_verifier` in `project.yaml`. The redeeming AI does not need - and does not have - the operator's seed; verification is purely public-key. If the delegation has been rotated since the token was issued, `delegation_verifier` no longer matches the key that signed the binding signature, and redemption fails.
+  4. Generate ephemeral session keypair (per ADR-033 §2).
+  5. Compute `session.expires = min(session_ttl, token.claims.expires)` (see §6).
+  6. Encode `JOY_SESSION = base64(sid || session_privkey || delegation_privkey?)` where `delegation_privkey` is included if and only if the token carried it (`--crypt` scope).
+  7. Write the session file (public key + claims + expiry; no private material).
+  8. Emit `export JOY_SESSION=...`.
+
+  Subsequent joy commands read `JOY_SESSION` from the environment, sign their requests with the ephemeral session privkey (auth), and - for Crypt-touching commands on `--crypt` sessions - use the embedded delegation privkey to unwrap the relevant zone wrap from `project.yaml`.
+
+  The harness contract from ADR-034 is unchanged: propagate `JOY_SESSION` across subshells. There is no new env var, no separate token-string propagation channel, no on-disk fallback.
+
+  ### 6. Session expiry is bounded by token expiry
+
+  Sessions inherit the token's `expires` claim as an upper bound on their own lifetime. A 30-minute token grants 30 minutes of session, full stop. A 24-hour token grants up to the configured session TTL (default 24h, ADR-033 §2), capped at the token's expiry if smaller. After session expiry, joy commands that read `JOY_SESSION` reject with the existing session-expired error.
+
+  This makes `--ttl 30m` mean what an operator expects when they issue a short-lived Crypt token: 30 minutes total, not 30 minutes plus a session window.
+
+  ### 7. Per-operator rotation
+
+  `joy auth delegation rotate ai:<id>` (run by the operator, requires passphrase):
+
+
+  1. Generate a fresh `delegation_salt` for `members.<self>.ai_delegations.<ai>`.
+  2. Re-derive the new `delegation_verifier` via HKDF.
+  3. Remove every `crypt.zones.*.delegations.<ai>.<self>` wrap entry across all zones (the old wraps are useless against the new pubkey; the operator may re-grant where desired).
+  4. Write the updated entry; ONE `project.yaml` commit.
+
+  Outstanding tokens this operator issued for this AI become unverifiable at step 5 of redemption (their binding signature was produced with the old delegation key). Other operators' delegations for the same AI: untouched. Other AIs of the same operator: untouched.
+
+  ### 8. Project-wide rotation
+
+  `joy ai rotate ai:<id>` (project-wide, requires `manage` capability, runs by any operator):
+
+
+  1. Remove every `members.<*>.ai_delegations.<ai>` entry across all operators.
+  2. Remove every `crypt.zones.*.delegations.<ai>` entry across all zones.
+  3. Single commit.
+
+  For an AI no longer trusted as a tool. After this, every operator who wants the AI back must re-create their delegation (one passphrase entry, one `project.yaml` write each); zones must be re-granted.
+
+  ### 9. AI Tool vs AI Automation
+
+  This ADR governs **AI Tool** Crypt access only. **AI Automation** continues with Job-bound wraps per ADR-038 / [Crypt.md §AI access via Jobs](https://docs.int.joydev.com/doc/crypt-selective-encryption-for-joy-dqDnSlnAqC): the Joyint platform creates a Job, wraps the zone key against the Job's session pubkey, and validity is state-based on the Job lifecycle. No tokens, no operator handoff, no per-(operator, AI) delegation. The two access tracks coexist and live at different paths in `project.yaml` and `.joy/jobs/`.
+
+  ### 10. No machine concept, no token registry
+
+  The schema knows operators and AIs and zones. It does not know machines. An operator's delegation is a single (operator, AI) construct; per-machine independence is the operator's responsibility (whichever machine they sit at, they enter their passphrase there). The trade-off accepted: a single `joy auth delegation rotate ai:<id>` revokes outstanding tokens for all of that operator's machines for that AI; a leaked credential on one machine produces a rotation that affects the operator's other machines too.
+
+  There is no per-token entry in `project.yaml`. Token validity is enforced exclusively via the signed `expires` claim plus the `delegation_verifier` lookup at redemption. No revocation list, no token inventory, no GC of stale entries; tokens that expire just stop verifying.
+
+  ## Consequences
+
+  **Positive.**
+
+  * `project.yaml` writes per `joy auth token add`: zero. Token issuance is a pure local-cryptography operation.
+  * No on-disk privkey for AI Tool delegations anywhere.
+  * Bounded repo state: `O(operators × AIs)` delegation entries, `O(operators × AIs × zones)` wrap entries. No growth from token issuance frequency.
+  * Token scopes (`auth` vs `auth + crypt`) give operators clean, per-token control: an auth-only token cannot decrypt anything, regardless of zone grants.
+  * `session.expires = min(...)` makes short-lived Crypt grants behave like the operator wrote them.
+  * Per-operator rotation (`joy auth delegation rotate`) is a proportionate response that does not affect teammates.
+
+  **Negative.**
+
+  * Per-machine independence within the same operator is not modeled. Two machines of one operator share one delegation; rotation affects both.
+  * Per-token revocation before TTL is not a separate operation. Operators wait out the TTL or rotate the delegation. In practice tokens are short (default 24h, `--ttl 30m` for surgical cases) and rotation is cheap (one `project.yaml` write).
+  * Crypt scope on a token is "all zones the operator's delegation has wraps for". Per-zone scope on a token is not in this ADR; if needed later, can be added as a `scopes` element like `["auth", "crypt:zone-name"]` enforced by Joy at command time.
+
+  **Neutral.**
+
+  * Token wire format gains a `scopes` claim and (for `--crypt` tokens) an embedded `delegation_privkey`. AI Automation tokens (if any) are unaffected by the field's presence; they don't use this path.
+  * ADR-033 §1's on-disk delegation key file is obsolete. Existing files are simply ignored.
+
+  ## Migration
+
+  No released line carries the per-token draft of this ADR. At the implementation boundary:
+
+  * The `~/.local/state/joy/delegations/<project>/<ai-member>.key` file from ADR-033 §1 is no longer read or written by joy. Operators may delete it at leisure.
+  * `members.<operator>.ai_delegations.<ai-member>.delegation_verifier` is preserved in shape. A `delegation_salt` field is added to each entry on the next `joy auth token add` (or `joy auth delegation rotate`) by that operator; until an entry is upgraded the corresponding tokens cannot be issued, prompting the operator to refresh.
+  * Pre-existing AI persistent grants stored under `members.<ai-id>.crypt_wraps.<zone>` are removed at the upgrade. Operators re-run `joy crypt grant <ai> --zone <name>` once and the per-operator wrap shape (§4) is established for current and future tokens.
+  * AI Automation Job-bound wraps are unaffected.
+
+  ## Related
+
+  * ADR-033 (JI-0116-52) §1 - delegation keypair definition; **derivation amended** here to passphrase-based via HKDF, on-disk file removed. §2 (ephemeral session keypair) and §3-superseded-by-ADR-034 unchanged.
+  * ADR-034 (JI-0117-9A) - multi-use within TTL, default 24h. Unchanged. The `expires` claim is the same field this ADR uses for `session.expires` clamping.
+  * ADR-038 (JI-011B-08) - selective encryption with AI access via Jobs. Unchanged for AI Automation; the AI Tool path lives in this ADR.
+  * ADR-039 (JI-011C-EA) - wrapped-seed identity. Operator seeds and the HKDF construction this ADR uses for delegation derivation come from here.
+  * ADR-040 (JI-011D-FA) - selective E2E, no Git filters. The "Crypt secrets never persist on disk" property is extended here to cover AI Tool delegation private keys.
+  * [Crypt.md §AI access](https://docs.int.joydev.com/doc/crypt-selective-encryption-for-joy-dqDnSlnAqC) - operational spec; updated alongside.
+  * [Auth.md §AI authentication](https://docs.int.joydev.com/doc/auth-identity-and-authentication-for-joy-komQW0PZFp) - patched alongside.
+  * Implementation: tracked in the umbrella under JI-00F1-B3 (spec) and the joy submodule's follow-up item.
+
+  (Relocated from umbrella JI-011E-A5 as part of the JI-0120 architecture reconciliation.)

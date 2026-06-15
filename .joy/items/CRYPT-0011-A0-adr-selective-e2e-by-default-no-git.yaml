@@ -1,0 +1,72 @@
+id: CRYPT-0011-A0
+title: 'ADR: Selective E2E by default, no Git filters'
+type: decision
+status: closed
+priority: medium
+capabilities:
+- conceive
+validity: accepted
+created_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+created: 2026-06-15T06:38:08.781418Z
+updated: 2026-06-15T06:38:08.859384Z
+updated_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+history:
+- date: 2026-06-15T06:38:08.859384Z
+  by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+description: |-
+  **Status:** Accepted (2026-05)
+
+  **Amends:** ADR-038: Selective encryption with optional whole-project mode (JI-011B-08). The "Server-side exposure" section of ADR-038 is superseded by this ADR. The selective-encryption model itself (default zone, named zones, `--all`, AI access bound to Jobs) stays in effect.
+
+  ## Context
+
+  ADR-038 chose a clean / smudge / textconv filter pipeline that decrypts working-directory ciphertext on `git add` so the forge would receive plaintext. The trade-off was explicit: protect the local working directory against AI tools that read files raw, but accept that the forge sees plaintext to keep PR diffs / blame / web view working.
+
+  Two issues emerged in the implementation (JOY-014B-09):
+
+
+  1. **The CLI side broke.** Once Git's smudge filter encrypted a file in the working directory, every subsequent `joy show`, `joy ls`, `joy edit` on that item failed with a YAML parse error. `joy-core/store::read_yaml` had no decrypt path; it tried to parse a `JOYCRYPT` blob as YAML and the read aborted. `joy ls` with even one encrypted item returned an error to the user. The Crypt feature was effectively unusable.
+  2. **The forge-plaintext trade-off does not hold for the customers who actually need Crypt.** The customer interviews behind ADR-038 surfaced "NDA-bound, embargo'd, multi-tenant separation". That pool of users does not benefit from forge-side review tools showing their NDA content - they need it shielded from the forge operator at least as strongly as from local AI. ADR-038's "forge sees plaintext" was a developer-comfort optimisation that conflicts with the stated customer requirement.
+
+  A third issue is structural: holding zone keys in a session-file sidecar (so the smudge subprocess could decrypt without prompting) put plaintext-equivalent secrets on the same filesystem as the AI tool the design tried to protect against, weakening the security model exactly where it matters.
+
+  ## Decision
+
+  Crypt is **selective E2E by default, no Git filters**.
+
+
+  1. **Encrypt-on-disk.** `joy crypt add` encrypts the file in place at the moment of the call. The working-directory file is the JOYCRYPT blob immediately. Reading or editing requires Joy CLI (items, transparently) or the explicit verbs in [Crypt.md §CLI](https://docs.int.joydev.com/doc/crypt-selective-encryption-for-joy-dqDnSlnAqC) (free files).
+  2. **Git is pure transport.** No clean / smudge / textconv filters. No `.gitattributes` rules. No `.git/config` wiring. The bytes that go into `git add` are the bytes that come out of `git checkout`, byte-identical end to end. The filter scaffolding added under JOY-014B-09 is rolled back.
+  3. **Forge sees ciphertext.** Every forge - joyint.com, GitHub, GitLab, Gitea - receives ciphertext on push, by default. Forge operators cannot read marked content. Forge-side review tools (PR diffs, blame, web view) show binary garbage for marked files.
+  4. **Joyint as optional decrypt gateway.** A project owner can grant Joyint a per-zone platform-wrap via the Joyint Web UI. The wrap is an X25519 ECDH against Joyint's published platform public key, performed in the browser using the user's seed (under MS-03 WebUI Crypt parity, JOY-0150-B0). With the wrap, Joyint can render decrypted content for authenticated reviewers in its UI without persisting plaintext, and decrypt-on-mirror to secondary forges with a per-mirror, per-zone `--decrypt` flag. Other forges never receive a wrap.
+  5. **Crypt secrets never persist on disk.** No zone-key cache in any session sidecar. No unlocked-files tracking field. Each Crypt-touching joy command prompts for the passphrase, derives the seed in memory, derives the zone keys it needs from the wraps in `project.yaml`, does its work, and discards the secrets when the process exits. Source of truth for "what is currently unlocked" is the filesystem walk over `crypt.zones[].paths`. Auto re-lock is opportunistic: any joy command that already prompts for the passphrase walks the zones and re-encrypts plaintext files it finds.
+
+  ## Consequences
+
+  **Threat model gets stronger and simpler.** Working directory, Git history, and forge are all ciphertext for marked content. AI tools running as the same OS user no longer find plaintext-equivalent material on disk: only the (passphrase-protected) wraps in `project.yaml` and the ciphertext blobs. The session file holds only signed auth claims.
+
+  **Forge-side review for marked content is off by default.** The previous "PR diffs work natively" property is sacrificed for E2E. Customers who want native review on Joyint grant the platform a per-zone wrap; customers on GitHub/GitLab/Gitea either accept review-broken (true E2E) or mirror through Joyint with `--decrypt` (Joyint pushes plaintext to the secondary, the trust anchor stays Joyint).
+
+  **Implementation is markedly smaller.** No filter binary, no `.gitattributes` management, no `git config` wiring, no setup-on-first-add logic, no zone-keys sidecar lifecycle. The Crypt CLI surface is a set of ordinary Joy verbs that prompt for the passphrase like any other authenticated action.
+
+  **Recovery story unchanged.** Recovery flows from Auth (ADR-039); zone wraps remain decryptable as long as the member's identity keypair is recoverable.
+
+  **Marketing language clarifies.** "Selective E2E" replaces the earlier "encryption against AI in the working directory". Joyint's optional decrypt-gateway role is a documented trust-anchor offering, not a hidden compromise.
+
+  **Backwards compatibility.** None required: no deployed Crypt projects exist before this ADR. The JOY-014B-09 filter scaffolding is rolled back as part of [JOY-015A-FD](https://github.com/joyint/joy/blob/HEAD/.joy/items/JOY-015A-FD-repair-crypt-encrypt-on-disk-file.yaml).
+
+  ## Out of scope
+
+  * Joyint Web UI for issuing platform-wraps lands with MS-03 WebUI Crypt parity (JOY-0150-B0).
+  * Joyint server-side decrypt-on-mirror logic is a separate platform item.
+  * Cross-forge review surfaces (browser extension, joyint-as-cross-forge-UI) are future ideas, not in any active item.
+
+  ## Related
+
+  * ADR-006 (JI-00FB-95) - original whole-project encryption design (superseded by ADR-038).
+  * ADR-038 (JI-011B-08) - selective encryption (in effect; Server-side exposure section amended here).
+  * ADR-039 (JI-011C-EA) - wrapped-seed Auth, used by Crypt for key wrapping.
+  * [Crypt.md](https://docs.int.joydev.com/doc/crypt-selective-encryption-for-joy-dqDnSlnAqC) - the operational spec; current text reflects this ADR.
+  * Implementation: [JOY-015A-FD](https://github.com/joyint/joy/blob/HEAD/.joy/items/JOY-015A-FD-repair-crypt-encrypt-on-disk-file.yaml).
+
+  (Relocated from umbrella JI-011D-FA as part of the JI-0120 architecture reconciliation.)

@@ -1,0 +1,64 @@
+id: CRYPT-000F-B2
+title: 'ADR: Selective encryption with optional whole-project mode'
+type: decision
+status: closed
+priority: medium
+capabilities:
+- conceive
+validity: accepted
+created_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+created: 2026-06-15T06:38:08.191369Z
+updated: 2026-06-15T06:38:08.267390Z
+updated_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+history:
+- date: 2026-06-15T06:38:08.267390Z
+  by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+description: |-
+  **Status:** Accepted (2026-05)
+
+  **Supersedes:** ADR-006: Client-side encryption with cleartext metadata (JI-00FB-95)
+
+  ## Context
+
+  ADR-006 specified that all data on joyint.com is always E2E-encrypted, with cleartext metadata. The original goal was twofold:
+
+
+  1. End-to-end confidentiality on joyint.com (server never sees content).
+  2. Local protection of `.joy/` files against AI assistants with file-system access bypassing Joy CLI capability checks.
+
+  Two issues emerged with this design as Joy moved towards production:
+
+
+  1. **AI value lost.** Whole-project encryption fights the value AI assistants provide. AI tools that read open backlog items use them as context: descriptions, prior comments, milestone goals. Encrypting all of that against AI by default makes the assistant less useful while not actually closing the trust boundary (an AI with shell access can read the keychain, watch decrypted memory, or invoke Joy CLI itself).
+  2. **The real customer ask is selective.** Customer interviews surfaced the actual confidentiality need: **specific** content under NDA, embargo, or per-customer restrictions. Whole-project encryption is rare; it appears only in regulated / compliance scenarios, and even there as an explicit configuration choice, not a default.
+
+  ## Decision
+
+  Encryption in Joy is **selective by default and opt-in in scope**.
+
+
+  1. **Default zone.** A single shared confidentiality boundary. Items and paths added to it via `joy crypt add` are encrypted with one zone key. Members are granted to the zone as a whole. Default state of the zone is "no items, no paths" - nothing is encrypted unless marked.
+  2. **Named zones (advanced).** Independent zones with separate keys, member lists, and recovery keys. Activated via `--zone <name>` on any Crypt command. Required only when content from different clients or NDAs must not be cross-readable.
+  3. **Whole-project mode.** Available via `joy crypt add --all`, which encrypts all current `.joy/` content and sets a project default that encrypts new items automatically. Replaces the implicit default of ADR-006 with an explicit choice.
+  4. **AI access bound to Jobs.** AI sessions get zone access through wraps attached to the Job record that governs their work, not through standing key wraps or separate ticket objects. The Job carries the wrapped zone keys, signed by whoever triggered the status change that created the Job. Validity is state-based: a wrap is usable only as long as the Job's lifecycle conditions hold (item assignee, status, capability). No TTL, no extension. When the Job closes (status change, cancel, reassign), the wrap becomes unusable. Persistent grants for AI members exist but are the exception (dedicated service AIs).
+  5. **Server-side exposure.** Crypt protects items and files against tools that read the local working directory. Once content is committed, the clean filter decrypts it and Git stores plaintext. Any Git host that receives the push (joyint.com, GitHub, GitLab, Gitea) sees plaintext history, plaintext diffs, plaintext blame, so forge-side review tools continue to work. Server-blind operation under any circumstance, including against a privileged operator, would require Confidential Computing substrates and is an idea for a future Enterprise tier, not in the current backlog.
+
+  The detailed model is documented in [`docs/dev/vision/guardianship/Crypt.md`](https://docs.int.joydev.com/doc/crypt-selective-encryption-for-joy-dqDnSlnAqC).
+
+  ## Consequences
+
+  **Simpler defaults.** A user who runs Joy without ever invoking Crypt sees identical behaviour to today: plaintext `.joy/`, AI assistants read freely, nothing changes. The AI-governance guarantees remain intact via Auth, Capabilities, Guard, and Judge - encryption is not load-bearing for them.
+
+  **Honest marketing.** Earlier framings such as "joyint.com is always E2E" or "the server only sees ciphertext" do not hold under the chosen Git filter design (clean decrypts on commit, Git history is plaintext). Marketing language is constrained accordingly: Crypt protects the local working directory against AI; for stricter server-side confidentiality, Confidential Computing is a future Enterprise option.
+
+  **Selective by default, comprehensive when needed.** The customer who has only one NDA-bound dataset uses two new commands (`joy crypt add <path>`, `joy crypt grant <email>`) and is done. The regulated customer who needs full encryption uses `joy crypt add --all` and gets the ADR-006 behaviour as an explicit choice. Multi-tenant teams use named zones.
+
+  **Minimal CLI surface.** Crypt is structured around four verbs (`add`, `rm`, `grant`, `revoke`), one optional `--zone` flag, and the `--all` flag for whole-project mode. There is no separate ticket / access / extend command set. AI access lives on the Job record and uses the existing Job lifecycle.
+
+  **Implementation impact.** The shared crate `joy-crypt` must support per-zone keys, Git filters for selectively marked patterns, and Web Crypto API parity for the WebUI. Job records carry an optional `crypt:` block with wrapped zone keys when the work touches encrypted content. Items previously scoped to one project key (JOY-00BA, JOY-00BB, JOY-00BC, JOY-0103, JP-0006, JP-0007) need to be revisited against the selective model.
+
+  **Job and Crypt share a lifecycle.** Job records (per Process.md) live at `.joy/jobs/<ITEM-ID>/JOB-XXXX.yaml`. They are created and closed mechanically by Joy on Item status changes. The optional `crypt:` block on a Job is created when the Job is created (and the item is encrypted) and becomes inert when the Job closes. No standalone ticket lifecycle, no parallel state.
+
+  **Backwards compatibility.** Not relevant; encryption was not yet implemented when this ADR was written. ADR-006 represents intent, not deployed behaviour.
+
+  (Relocated from umbrella JI-011B-08 as part of the JI-0120 architecture reconciliation.)
