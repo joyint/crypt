@@ -15,6 +15,7 @@ pub mod error;
 pub mod identity;
 pub mod kdf;
 pub mod pairwise;
+pub mod seed;
 pub mod session_wrap;
 pub mod wrap;
 pub mod zone;

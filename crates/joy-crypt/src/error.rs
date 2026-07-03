@@ -24,4 +24,7 @@ pub enum Error {
 
     #[error("AEAD operation failed")]
     Aead,
+
+    #[error("{0}")]
+    Auth(String),
 }
