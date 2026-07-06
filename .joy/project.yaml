@@ -1,6 +1,10 @@
 name: Crypt
 acronym: CRYPT
 language: en
+release:
+  version-files:
+  - path: crates/joy-crypt/Cargo.toml
+    key: package.version
 members:
   ai:claude@joy:
     capabilities:
