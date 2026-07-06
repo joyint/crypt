@@ -1,10 +1,6 @@
 name: Crypt
 acronym: CRYPT
 language: en
-release:
-  version-files:
-  - path: crates/joy-crypt/Cargo.toml
-    key: package.version
 members:
   ai:claude@joy:
     capabilities:
@@ -17,6 +13,22 @@ members:
       document: {}
       create: {}
       assign: {}
+    attestation:
+      attester: horst.schwarz@joydev.com
+      signed_fields:
+        email: ai:claude@joy
+        capabilities:
+          conceive: {}
+          plan: {}
+          design: {}
+          implement: {}
+          test: {}
+          review: {}
+          document: {}
+          create: {}
+          assign: {}
+      signed_at: 2026-07-06T05:05:54.051797Z
+      signature: 28135f13b1dae3c17404c6ee6e4caaf8e4360efa666550ca700df4207e9e322764dcb10bc0eededcee463aba022ca9930c5f2a701c6fa668fbd507d7d643c601
   horst.schwarz@joydev.com:
     capabilities: all
     verify_key: c138d2b6f4c911bb1478cbf329bc39cdbf29597652147c0c03d9a05afc468900
@@ -29,3 +41,7 @@ members:
         delegation_salt: a9ebdbcd382e99c35c084978d64a46004bdb0f66a9e5d4ddeaa4ae7b228442fa
         created: 2026-05-03T10:52:15.153683Z
 created: 2026-03-25T22:22:37.107652684Z
+release:
+  version-files:
+  - path: crates/joy-crypt/Cargo.toml
+    key: package.version
