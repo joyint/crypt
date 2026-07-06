@@ -1,0 +1,27 @@
+version: v0.1.1
+date: 2026-07-06
+contributors:
+- id: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+  events: 36
+  items: 9
+items:
+  tasks:
+  - id: CRYPT-000B-B7
+    title: Initialize joy-crypt crate skeleton
+  - id: CRYPT-000C-A4
+    title: Implement core crypto primitives in joy-crypt
+  - id: CRYPT-000D-E7
+    title: Add X25519 pairwise primitive for cross-member zone wraps
+  decisions:
+  - id: CRYPT-000E-1E
+    title: 'ADR: Passphrase-derived (human, AI) delegation keys'
+  - id: CRYPT-000F-B2
+    title: 'ADR: Selective encryption with optional whole-project mode'
+  - id: CRYPT-0010-5A
+    title: 'ADR: Wrapped-seed identity model with recovery key'
+  - id: CRYPT-0011-A0
+    title: 'ADR: Selective E2E by default, no Git filters'
+  - id: CRYPT-0012-99
+    title: 'ADR: AI Tool Crypt - passphrase-derived delegation, scoped tokens'
+  - id: CRYPT-0013-D7
+    title: 'ADR: Client-side encryption with cleartext metadata'
