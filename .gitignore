@@ -12,6 +12,7 @@ QWEN.md
 
 ### joy:start -- managed by joy, do not edit manually
 .joy/config.yaml
+.joy/chat-state.yaml
 .joy/credentials.yaml
 .joy/hooks/
 .joy/project.defaults.yaml

@@ -1,0 +1,14 @@
+id: CRYPT-0014-D8
+title: align AI Automation grants with jobs-as-items (JOY-01FE-37)
+type: task
+status: new
+priority: medium
+capabilities:
+- implement
+effort: 2
+created_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+created: 2026-07-11T15:17:24.967259842Z
+updated: 2026-07-11T15:17:24.967259842Z
+updated_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+history: []
+description: 'Jobs are now Joy items in .joy/jobs/ (plain YAML, no key material); execution loops are attempts on the job. Update the Crypt vision/docs: the Job-bound wrap (ADR-038 track) attaches to the platform-held attempt/session context instead of a crypt: block in the job file; validity stays state-based on the job lifecycle. Update the .joy/jobs/<ITEM-ID>/JOB-XXXX.yaml path example and joy job ls references to the item grammar (joy ls -J).'
