@@ -8,7 +8,11 @@ capabilities:
 effort: 2
 created_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
 created: 2026-07-11T15:17:24.967259842Z
-updated: 2026-07-11T15:17:24.967259842Z
+updated: 2026-07-11T15:35:23.483571957Z
 updated_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
 history: []
 description: 'Jobs are now Joy items in .joy/jobs/ (plain YAML, no key material); execution loops are attempts on the job. Update the Crypt vision/docs: the Job-bound wrap (ADR-038 track) attaches to the platform-held attempt/session context instead of a crypt: block in the job file; validity stays state-based on the job lifecycle. Update the .joy/jobs/<ITEM-ID>/JOB-XXXX.yaml path example and joy job ls references to the item grammar (joy ls -J).'
+comments:
+- author: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+  date: 2026-07-11T15:35:23.483571388Z
+  text: 'Proposed edits to the Outline doc ''Crypt - Selective Encryption for Joy'' (left to the operator: it is the authored vision doc and the MCP update would replace whole content): (1) Section ''AI Automation: Job-bound grants'': jobs are now Joy items at .joy/jobs/<ACRONYM>-JOB-xxxx-<hash>.yaml, plain YAML, NO crypt: block and no key material in the job file; the wrapped zone key attaches to the platform-held attempt/session context created when an attempt starts (wrap against the attempt''s session pubkey, as the doc already sketches). Validity stays state-based: assignee + job status in-progress + capability. (2) Replace the JOB-0001 YAML example with a job item (scope list, budget, attempts). (3) Replace ''joy job ls'' with ''joy ls -J''. (4) The wrap-location table row ''AI Automation -> Job record'' becomes ''attempt context (platform-held), never the job YAML''. (5) Cost reporting: tokens/cost land as attempt entries on the job item, not on a separate job record. Ref: JOY-01FE-37.'
