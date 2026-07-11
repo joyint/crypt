@@ -1,3 +1,6 @@
 2026-07-11T15:13:36.070Z auth auth.session_created "session created for ai:claude@joy via delegation token" [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
 2026-07-11T15:17:24.972Z CRYPT-0014-D8 item.created [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
 2026-07-11T15:35:23.487Z CRYPT-0014-D8 comment.added [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
+2026-07-11T19:13:21.981Z CRYPT-0014-D8 item.status_changed "new -> in-progress" [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
+2026-07-11T19:13:22.013Z CRYPT-0014-D8 comment.added [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
+2026-07-11T19:13:22.045Z CRYPT-0014-D8 item.status_changed "in-progress -> review" [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
