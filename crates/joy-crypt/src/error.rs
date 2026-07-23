@@ -25,6 +25,9 @@ pub enum Error {
     #[error("AEAD operation failed")]
     Aead,
 
+    #[error("no key available for zone '{zone}'")]
+    ZoneKeyUnavailable { zone: String },
+
     #[error("{0}")]
     Auth(String),
 }
