@@ -265,7 +265,7 @@ fn base64_decode(s: &str) -> Result<Vec<u8>, TokenError> {
 mod tests {
     use super::*;
     use chrono::Duration;
-    use joy_crypt::kdf::{derive_argon2id as derive_key, generate_salt, Salt};
+    use joy_crypt::kdf::{derive_argon2id as derive_key, Salt};
 
     const TEST_PASSPHRASE: &str = "correct horse battery staple extra words";
 
