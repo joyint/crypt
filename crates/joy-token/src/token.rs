@@ -264,8 +264,8 @@ fn base64_decode(s: &str) -> Result<Vec<u8>, TokenError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use joy_crypt::kdf::{derive_argon2id as derive_key, generate_salt, Salt};
     use chrono::Duration;
+    use joy_crypt::kdf::{derive_argon2id as derive_key, generate_salt, Salt};
 
     const TEST_PASSPHRASE: &str = "correct horse battery staple extra words";
 
@@ -337,7 +337,13 @@ mod tests {
     fn expired_token_rejected() {
         let (delegator, delegator_pk) = test_keypair();
         let (seed, delegation, delegation_pk) = fresh_delegation();
-        let token = make_token(&delegator, &delegation, &seed, Some(Duration::hours(-1)), false);
+        let token = make_token(
+            &delegator,
+            &delegation,
+            &seed,
+            Some(Duration::hours(-1)),
+            false,
+        );
         assert!(validate_token(&token, &delegator_pk, &delegation_pk, "TST").is_err());
     }
 
