@@ -49,18 +49,13 @@ pub struct DelegationClaims {
     pub project_id: String,
     pub created: DateTime<Utc>,
     pub expires: Option<DateTime<Utc>>,
-    /// Capability scopes for this token. Default `["auth"]`. Tokens issued
-    /// with `--crypt` also carry `"crypt"` (ADR-041 §3). Unknown scopes are
-    /// preserved so newer scope vocabularies do not break older verifiers.
+    /// Capability scopes for this token, always `["auth", "crypt"]`.
+    /// A delegation is not divisible: the AI acts with the key it was
+    /// given. The claim stays on the wire because older verifiers still
+    /// look for it, and unknown scopes are preserved so a newer
+    /// vocabulary does not break an older reader.
     #[serde(default = "default_scopes")]
     pub scopes: Vec<String>,
-}
-
-impl DelegationClaims {
-    /// Whether the token authorises Crypt unwrap (carries delegation privkey).
-    pub fn has_crypt_scope(&self) -> bool {
-        self.scopes.iter().any(|s| s == SCOPE_CRYPT)
-    }
 }
 
 /// A delegation token with dual signatures.
@@ -92,9 +87,9 @@ pub struct TokenSigningKeys<'a> {
     /// signature. The matching public key must already be recorded in
     /// `project.yaml`.
     pub delegation: &'a IdentityKeypair,
-    /// 32-byte Ed25519 seed of the delegation keypair. Embedded in the
-    /// token wire format when [`TokenIssueParams::crypt_scope`] is true
-    /// (ADR-041 §3); otherwise discarded.
+    /// 32-byte Ed25519 seed of the delegation keypair. It rides in the
+    /// token: a delegation IS the key the AI acts with, for chats and
+    /// zones alike.
     pub delegation_seed: &'a [u8; 32],
 }
 
@@ -104,26 +99,17 @@ pub struct TokenIssueParams<'a> {
     pub human: &'a str,
     pub project_id: &'a str,
     pub ttl: Option<Duration>,
-    /// Whether the token also carries the delegation private key for
-    /// Crypt unwrap (ADR-041 §3). When false the token is auth-only.
-    pub crypt_scope: bool,
 }
 
 /// Create a delegation token with dual signatures.
 ///
-/// The caller supplies the signing material (delegator + delegation
-/// keypair, plus the delegation seed for Crypt-scope tokens) and the
-/// claim parameters. When `params.crypt_scope` is true, the delegation
-/// seed is embedded in the token so the AI can re-derive the keypair
-/// and unwrap zone keys; the scope claim becomes `["auth", "crypt"]`.
-/// When false, the seed is discarded and the token is auth-only.
+/// The token carries the delegation seed. Delegating means the AI acts
+/// with that identity: it reads the chats it is in and unwraps the zones
+/// its delegator granted, with the one key it was given. A token that
+/// only authenticates would be an identity that cannot do anything.
 pub fn create_token(keys: TokenSigningKeys<'_>, params: TokenIssueParams<'_>) -> DelegationToken {
     let now = Utc::now();
-    let scopes = if params.crypt_scope {
-        vec![SCOPE_AUTH.to_string(), SCOPE_CRYPT.to_string()]
-    } else {
-        vec![SCOPE_AUTH.to_string()]
-    };
+    let scopes = vec![SCOPE_AUTH.to_string(), SCOPE_CRYPT.to_string()];
     let claims = DelegationClaims {
         token_id: uuid::Uuid::new_v4().to_string(),
         ai_member: params.ai_member.to_string(),
@@ -138,11 +124,7 @@ pub fn create_token(keys: TokenSigningKeys<'_>, params: TokenIssueParams<'_>) ->
     let delegator_sig = keys.delegator.sign(claims_json.as_bytes());
     let binding_sig = keys.delegation.sign(claims_json.as_bytes());
 
-    let delegation_private_key = if params.crypt_scope {
-        Some(hex::encode(keys.delegation_seed))
-    } else {
-        None
-    };
+    let delegation_private_key = Some(hex::encode(keys.delegation_seed));
 
     DelegationToken {
         claims,
@@ -293,7 +275,6 @@ mod tests {
         delegation: &IdentityKeypair,
         seed: &[u8; 32],
         ttl: Option<Duration>,
-        crypt_scope: bool,
     ) -> DelegationToken {
         create_token(
             TokenSigningKeys {
@@ -306,7 +287,6 @@ mod tests {
                 human: "human@example.com",
                 project_id: "TST",
                 ttl,
-                crypt_scope,
             },
         )
     }
@@ -315,35 +295,29 @@ mod tests {
     fn create_and_validate_token() {
         let (delegator, delegator_pk) = test_keypair();
         let (seed, delegation, delegation_pk) = fresh_delegation();
-        let token = make_token(&delegator, &delegation, &seed, None, false);
+        let token = make_token(&delegator, &delegation, &seed, None);
         let claims = validate_token(&token, &delegator_pk, &delegation_pk, "TST").unwrap();
         assert_eq!(claims.ai_member, "ai:claude@joy");
         assert_eq!(claims.delegated_by, "human@example.com");
         assert_eq!(token.delegation_public_key, delegation_pk.to_hex());
-        assert!(token.delegation_private_key.is_none());
-        assert!(!claims.has_crypt_scope());
     }
 
     #[test]
-    fn crypt_token_carries_seed() {
+    fn a_delegation_carries_the_key_it_delegates() {
+        // One key, one delegation: the AI reads its chats and unwraps
+        // the zones its delegator granted with the same key it signs
+        // with. There is no half delegation that can only say hello.
         let (delegator, _) = test_keypair();
         let (seed, delegation, _) = fresh_delegation();
-        let token = make_token(&delegator, &delegation, &seed, None, true);
+        let token = make_token(&delegator, &delegation, &seed, None);
         assert_eq!(token.delegation_private_key, Some(hex::encode(seed)));
-        assert!(token.claims.has_crypt_scope());
     }
 
     #[test]
     fn expired_token_rejected() {
         let (delegator, delegator_pk) = test_keypair();
         let (seed, delegation, delegation_pk) = fresh_delegation();
-        let token = make_token(
-            &delegator,
-            &delegation,
-            &seed,
-            Some(Duration::hours(-1)),
-            false,
-        );
+        let token = make_token(&delegator, &delegation, &seed, Some(Duration::hours(-1)));
         assert!(validate_token(&token, &delegator_pk, &delegation_pk, "TST").is_err());
     }
 
@@ -351,7 +325,7 @@ mod tests {
     fn wrong_project_rejected() {
         let (delegator, delegator_pk) = test_keypair();
         let (seed, delegation, delegation_pk) = fresh_delegation();
-        let token = make_token(&delegator, &delegation, &seed, None, false);
+        let token = make_token(&delegator, &delegation, &seed, None);
         assert!(validate_token(&token, &delegator_pk, &delegation_pk, "OTHER").is_err());
     }
 
@@ -359,7 +333,7 @@ mod tests {
     fn tampered_claims_rejected() {
         let (delegator, delegator_pk) = test_keypair();
         let (seed, delegation, delegation_pk) = fresh_delegation();
-        let mut token = make_token(&delegator, &delegation, &seed, None, false);
+        let mut token = make_token(&delegator, &delegation, &seed, None);
         token.claims.ai_member = "ai:evil@joy".to_string();
         assert!(validate_token(&token, &delegator_pk, &delegation_pk, "TST").is_err());
     }
@@ -369,7 +343,7 @@ mod tests {
         let (_, delegator_pk) = test_keypair();
         let (seed, delegation, delegation_pk) = fresh_delegation();
         let (other, _) = fresh_delegation_kp();
-        let token = make_token(&other, &delegation, &seed, None, false);
+        let token = make_token(&other, &delegation, &seed, None);
         assert!(validate_token(&token, &delegator_pk, &delegation_pk, "TST").is_err());
     }
 
@@ -378,7 +352,7 @@ mod tests {
         let (delegator, delegator_pk) = test_keypair();
         let (seed, _, delegation_pk) = fresh_delegation();
         let (other, _) = fresh_delegation_kp();
-        let token = make_token(&delegator, &other, &seed, None, false);
+        let token = make_token(&delegator, &other, &seed, None);
         assert!(validate_token(&token, &delegator_pk, &delegation_pk, "TST").is_err());
     }
 
@@ -391,7 +365,7 @@ mod tests {
     fn encode_decode_roundtrip() {
         let (delegator, _) = test_keypair();
         let (seed, delegation, _) = fresh_delegation();
-        let token = make_token(&delegator, &delegation, &seed, None, true);
+        let token = make_token(&delegator, &delegation, &seed, None);
         let encoded = encode_token(&token);
         assert!(is_token(&encoded));
         let decoded = decode_token(&encoded).unwrap();
@@ -408,7 +382,7 @@ mod tests {
     fn decode_tolerates_embedded_whitespace() {
         let (delegator, _) = test_keypair();
         let (seed, delegation, _) = fresh_delegation();
-        let token = make_token(&delegator, &delegation, &seed, None, false);
+        let token = make_token(&delegator, &delegation, &seed, None);
         let encoded = encode_token(&token);
         let wrapped = format!("{}\n  {}", &encoded[..20], &encoded[20..]);
         assert_eq!(
@@ -421,7 +395,7 @@ mod tests {
     fn decode_accepts_double_quoted_token() {
         let (delegator, _) = test_keypair();
         let (seed, delegation, _) = fresh_delegation();
-        let token = make_token(&delegator, &delegation, &seed, None, false);
+        let token = make_token(&delegator, &delegation, &seed, None);
         let encoded = encode_token(&token);
         assert!(decode_token(&format!("\"{encoded}\"")).is_ok());
     }
