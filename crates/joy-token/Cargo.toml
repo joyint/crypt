@@ -9,7 +9,7 @@ description = "Delegation tokens and per-(operator, AI) delegation key derivatio
 [dependencies]
 # Only the pure, wasm-portable crypto crate and portable data crates, so the
 # browser runs the EXACT same token code as the CLI and the platform.
-joy-crypt = { path = "../joy-crypt" }
+joy-crypt = { version = "0.1", path = "../joy-crypt" }
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
