@@ -1,0 +1,11 @@
+version: v0.2.0
+date: 2026-07-31
+previous: v0.1.1
+contributors:
+- id: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+  events: 5
+  items: 1
+items:
+  bugs:
+  - id: CRYPT-0015-78
+    title: 'zone API shipped without a release: crates.io joy-crypt 0.1.1 is stale'

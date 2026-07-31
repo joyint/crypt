@@ -4,3 +4,4 @@
 2026-07-31T20:09:37.615Z CRYPT-0015-78 item.status_changed "open -> in-progress" [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
 2026-07-31T20:09:37.645Z CRYPT-0015-78 item.status_changed "in-progress -> review" [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
 2026-07-31T20:09:37.678Z CRYPT-0015-78 item.status_changed "review -> closed" [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
+2026-07-31T20:23:13.762Z v0.2.0 release.created [horst.schwarz@joydev.com]
