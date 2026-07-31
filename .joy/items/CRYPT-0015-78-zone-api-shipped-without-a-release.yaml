@@ -1,0 +1,16 @@
+id: CRYPT-0015-78
+title: 'zone API shipped without a release: crates.io joy-crypt 0.1.1 is stale'
+type: bug
+status: closed
+priority: high
+assignees:
+- member: ai:claude@joy
+capabilities:
+- implement
+- review
+effort: 1
+created_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+created: 2026-07-31T20:09:37.542761712Z
+updated: 2026-07-31T20:09:37.673862161Z
+updated_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+description: 'The rework gave joy-crypt the sealed-chat zone API (decrypt_blob, encrypt_blob_with_nonce, ZoneKey) but crypt was never released, so crates.io still serves the pre-rework code as 0.1.1. Publishing joy-chat 0.20.0 fails verification against it. Resolution: release crypt as 0.2.0 (joy-crypt and joy-token in step; joy-token now carries the exact-version joy-crypt dependency so the textual bump moves everything together) and publish both crates.'

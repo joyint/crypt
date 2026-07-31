@@ -13,7 +13,8 @@ members:
       document: {}
       create: {}
       assign: {}
-    adapter: claude-code
+    adapter: claude
+    verify_key: 61f511603f54d91e201d2acdb3d5c5fab53e850773324abd6957271cbc3e2bde
     attestation:
       attester: horst.schwarz@joydev.com
       signed_fields:
@@ -46,3 +47,4 @@ release:
   version-files:
   - path: crates/joy-crypt/Cargo.toml
     key: package.version
+  - crates/joy-token/Cargo.toml
