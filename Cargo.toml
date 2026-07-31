@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/joy-crypt"]
+members = ["crates/joy-crypt", "crates/joy-token"]
 
 [workspace.package]
 edition = "2021"

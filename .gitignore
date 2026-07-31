@@ -17,3 +17,4 @@ QWEN.md
 .joy/hooks/
 .joy/project.defaults.yaml
 ### joy:end
+.DS_Store

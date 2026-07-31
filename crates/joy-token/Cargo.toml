@@ -1,0 +1,29 @@
+[package]
+name = "joy-token"
+version = "0.1.0"
+edition = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+description = "Delegation tokens and per-(operator, AI) delegation key derivation — wasm-portable, shared by joy-core (CLI/server) and the browser (JI-0175-B0)"
+
+[dependencies]
+# Only the pure, wasm-portable crypto crate and portable data crates, so the
+# browser runs the EXACT same token code as the CLI and the platform.
+joy-crypt = { path = "../joy-crypt" }
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+hex = { workspace = true }
+base64ct = { version = "1", features = ["alloc"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+thiserror = { workspace = true }
+
+# On wasm, uuid v4 needs a randomness source: its "js" feature wires the
+# browser's crypto (and pulls getrandom's js backend). Feature-unioned
+# onto the base uuid dependency for the wasm target only.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+uuid = { version = "1", features = ["js"] }
+getrandom = { version = "0.2", features = ["js"] }
+
+[dev-dependencies]
+rand = { workspace = true }
