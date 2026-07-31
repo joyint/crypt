@@ -1,6 +1,6 @@
 [package]
 name = "joy-token"
-version = "0.1.0"
+version = "0.1.1"
 edition = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
@@ -9,7 +9,7 @@ description = "Delegation tokens and per-(operator, AI) delegation key derivatio
 [dependencies]
 # Only the pure, wasm-portable crypto crate and portable data crates, so the
 # browser runs the EXACT same token code as the CLI and the platform.
-joy-crypt = { version = "0.1", path = "../joy-crypt" }
+joy-crypt = { version = "0.1.1", path = "../joy-crypt" }
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
