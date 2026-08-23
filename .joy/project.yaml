@@ -43,63 +43,27 @@ members:
         delegation_salt: a9ebdbcd382e99c35c084978d64a46004bdb0f66a9e5d4ddeaa4ae7b228442fa
         created: 2026-05-03T10:52:15.153683Z
   philipp@joyint.com:
-    capabilities:
-      conceive: {}
-      plan: {}
-      design: {}
-      implement: {}
-      test: {}
-      review: {}
-      document: {}
-      create: {}
-      assign: {}
+    capabilities: all
     enrollment_verifier: ee412d16072ad637a7e441bd1f5a90aa9d9f44b8a0deefc6fa40507317d3a735:8148a733817ca334bf16537b79c57bf80c9956852f31f30cd1505c94e15067bf
     attestation:
       attester: horst.schwarz@joydev.com
       signed_fields:
         email: philipp@joyint.com
-        capabilities:
-          conceive: {}
-          plan: {}
-          design: {}
-          implement: {}
-          test: {}
-          review: {}
-          document: {}
-          create: {}
-          assign: {}
+        capabilities: all
         otp_hash: ee412d16072ad637a7e441bd1f5a90aa9d9f44b8a0deefc6fa40507317d3a735:8148a733817ca334bf16537b79c57bf80c9956852f31f30cd1505c94e15067bf
-      signed_at: 2026-08-22T08:40:42.160855230Z
-      signature: 21a8be96ca99fbc654d8b4e47914ca04d6cfc0c9d0a2a04ccf0ecf4f05f426a0b3995b1590bbdadea2669d1fb3a7a47286a190e53eabcfbddcdbe62a507e8900
+      signed_at: 2026-08-23T16:48:47.911458616Z
+      signature: 9d7dad2beab6d36e8709f9aa216ede8cd2934d432d0978a7eae59d28e60c7d72ba44033c57d6ea801ea16187ff4be81f8000a7673c5bc843ef6d24a7f7564c02
   roland@joyint.com:
-    capabilities:
-      conceive: {}
-      plan: {}
-      design: {}
-      implement: {}
-      test: {}
-      review: {}
-      document: {}
-      create: {}
-      assign: {}
+    capabilities: all
     enrollment_verifier: 2934ae7728ebdafd35cb46f2d04fbea79726cb27fff2585f69174e695b40d568:0c530e19070c38dcbb0c443cccad8efe661cdedc0cdd813c07a057d013d1ba12
     attestation:
       attester: horst.schwarz@joydev.com
       signed_fields:
         email: roland@joyint.com
-        capabilities:
-          conceive: {}
-          plan: {}
-          design: {}
-          implement: {}
-          test: {}
-          review: {}
-          document: {}
-          create: {}
-          assign: {}
+        capabilities: all
         otp_hash: 2934ae7728ebdafd35cb46f2d04fbea79726cb27fff2585f69174e695b40d568:0c530e19070c38dcbb0c443cccad8efe661cdedc0cdd813c07a057d013d1ba12
-      signed_at: 2026-08-22T08:33:49.757587809Z
-      signature: f70f11f4ef5556d800252ff5b0debc83f82d1d2c9083f85d19e90c496dd4a66da5fcbba3e70d48d8b4c8494e8d71af23598f861a6bc28ac1109fe7731fea2b0c
+      signed_at: 2026-08-23T16:48:26.656145953Z
+      signature: eb07fc6304330b7d25200e33624fdb444c4f1f7044d3e1b76197be4e204c8875c62a9b563c2e05604b959a2b8a8bf4c1afc265109e507d07e0ddbc3bf4f4100e
 created: 2026-03-25T22:22:37.107652684Z
 release:
   version-files:
