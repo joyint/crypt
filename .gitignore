@@ -23,6 +23,7 @@ AGENTS.md
 .github/copilot-instructions.md
 .github/copilot/
 .github/agents/
+.github/skills/
 .github/prompts/
 ### joy:end
 .DS_Store
