@@ -99,6 +99,22 @@ pub struct TokenIssueParams<'a> {
     pub human: &'a str,
     pub project_id: &'a str,
     pub ttl: Option<Duration>,
+    /// What the delegating person allows the AI member, as the issuer
+    /// names it (joy: the hash of the signed grant, or `none`). It rides
+    /// in the signed claims as one more scope, [`grant_scope`] reads it
+    /// back. `None` leaves it out, as every token before had it.
+    pub grant: Option<&'a str>,
+}
+
+/// Prefix of the scope that carries [`TokenIssueParams::grant`].
+pub const SCOPE_GRANT_PREFIX: &str = "grant:";
+
+/// The grant a token was issued with, if it names one.
+pub fn grant_scope(claims: &DelegationClaims) -> Option<&str> {
+    claims
+        .scopes
+        .iter()
+        .find_map(|scope| scope.strip_prefix(SCOPE_GRANT_PREFIX))
 }
 
 /// Create a delegation token with dual signatures.
@@ -109,7 +125,10 @@ pub struct TokenIssueParams<'a> {
 /// only authenticates would be an identity that cannot do anything.
 pub fn create_token(keys: TokenSigningKeys<'_>, params: TokenIssueParams<'_>) -> DelegationToken {
     let now = Utc::now();
-    let scopes = vec![SCOPE_AUTH.to_string(), SCOPE_CRYPT.to_string()];
+    let mut scopes = vec![SCOPE_AUTH.to_string(), SCOPE_CRYPT.to_string()];
+    if let Some(grant) = params.grant {
+        scopes.push(format!("{SCOPE_GRANT_PREFIX}{grant}"));
+    }
     let claims = DelegationClaims {
         token_id: uuid::Uuid::new_v4().to_string(),
         ai_member: params.ai_member.to_string(),
@@ -287,8 +306,39 @@ mod tests {
                 human: "human@example.com",
                 project_id: "TST",
                 ttl,
+                grant: None,
             },
         )
+    }
+
+    #[test]
+    fn a_token_names_the_grant_it_was_issued_with_under_the_signatures() {
+        let (delegator, delegator_pk) = test_keypair();
+        let (seed, delegation, delegation_pk) = fresh_delegation();
+        let mut token = create_token(
+            TokenSigningKeys {
+                delegator: &delegator,
+                delegation: &delegation,
+                delegation_seed: &seed,
+            },
+            TokenIssueParams {
+                ai_member: "claude",
+                human: "human@example.com",
+                project_id: "TST",
+                ttl: None,
+                grant: Some("abc123"),
+            },
+        );
+        let claims = validate_token(&token, &delegator_pk, &delegation_pk, "TST").unwrap();
+        assert_eq!(grant_scope(&claims), Some("abc123"));
+
+        // a token without one says nothing
+        let plain = make_token(&delegator, &delegation, &seed, None);
+        assert_eq!(grant_scope(&plain.claims), None);
+
+        // and the grant cannot be swapped: it is inside the signed claims
+        token.claims.scopes = vec!["auth".into(), "crypt".into(), "grant:none".into()];
+        assert!(validate_token(&token, &delegator_pk, &delegation_pk, "TST").is_err());
     }
 
     #[test]
