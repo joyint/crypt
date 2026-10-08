@@ -29,9 +29,7 @@ use joy_crypt::kdf::{derive_hkdf_sha256, Salt};
 ///   - `salt`: the per-(operator, AI) `delegation_salt` recorded in
 ///     `project.yaml`.
 ///   - `project_id`: the canonical project id (acronym today).
-///   - `ai_member_id`: the AI member, by its name (`claude`) or by the
-///     older id (`ai:claude@joy`). Both derive the same key, see
-///     [`derivation_id`].
+///   - `ai_member`: the AI member's name (`claude`).
 ///
 /// HKDF-SHA256 is used in extract-and-expand form. The `info` parameter
 /// embeds project and member ids so the same `(seed, salt)` cannot be
@@ -40,35 +38,35 @@ pub fn derive_delegation_seed(
     identity_seed: &[u8; 32],
     salt: &Salt,
     project_id: &str,
-    ai_member_id: &str,
+    ai_member: &str,
 ) -> [u8; 32] {
-    let ai_member_id = derivation_id(ai_member_id);
-    let ai_member_id = ai_member_id.as_ref();
-    let mut info = Vec::with_capacity(16 + project_id.len() + 1 + ai_member_id.len());
-    info.extend_from_slice(b"joy-delegation:");
+    let mut info = Vec::with_capacity(
+        INFO_DOMAIN.len()
+            + project_id.len()
+            + 1
+            + INFO_BEFORE_MEMBER.len()
+            + ai_member.len()
+            + INFO_AFTER_MEMBER.len(),
+    );
+    info.extend_from_slice(INFO_DOMAIN);
     info.extend_from_slice(project_id.as_bytes());
     info.push(b':');
-    info.extend_from_slice(ai_member_id.as_bytes());
+    info.extend_from_slice(INFO_BEFORE_MEMBER);
+    info.extend_from_slice(ai_member.as_bytes());
+    info.extend_from_slice(INFO_AFTER_MEMBER);
     derive_hkdf_sha256(identity_seed, salt.as_bytes(), &info)
 }
 
-/// What the derivation knows an AI member by: `ai:<name>@joy`, whichever
-/// way the caller writes it.
-///
-/// An AI member used to be `ai:claude@joy` everywhere and is known by
-/// its name, `claude`, now. The keys of the delegations made before
-/// were derived over the older id, and their public halves stand in the
-/// projects out there. Deriving over that one form for both spellings
-/// keeps every one of them re-derivable: a project that renames its AI
-/// members needs no new delegation, and a new delegation is the same
-/// key whichever way the member is written.
-fn derivation_id(ai_member_id: &str) -> std::borrow::Cow<'_, str> {
-    if ai_member_id.starts_with("ai:") {
-        std::borrow::Cow::Borrowed(ai_member_id)
-    } else {
-        std::borrow::Cow::Owned(format!("ai:{ai_member_id}@joy"))
-    }
-}
+const INFO_DOMAIN: &[u8] = b"joy-delegation:";
+
+/// The bytes that stand around the member's name in the derivation's
+/// info. They are part of every delegation key ever derived: the public
+/// halves of those keys stand in the projects out there, so these bytes
+/// can never change, or every delegation would have to be made again.
+/// They are a label of this derivation and nothing else. An AI member is
+/// its name everywhere, here as well: what comes in is the name.
+const INFO_BEFORE_MEMBER: &[u8] = b"ai:";
+const INFO_AFTER_MEMBER: &[u8] = b"@joy";
 
 #[cfg(test)]
 mod tests {
@@ -80,43 +78,46 @@ mod tests {
     #[test]
     fn delegation_seed_is_deterministic() {
         let salt = generate_salt();
-        let s1 = derive_delegation_seed(&FIXED_SEED, &salt, "JOY", "ai:claude@joy");
-        let s2 = derive_delegation_seed(&FIXED_SEED, &salt, "JOY", "ai:claude@joy");
+        let s1 = derive_delegation_seed(&FIXED_SEED, &salt, "JOY", "claude");
+        let s2 = derive_delegation_seed(&FIXED_SEED, &salt, "JOY", "claude");
         assert_eq!(s1, s2);
     }
 
-    /// A delegation made when the member was `ai:claude@joy` is the
-    /// same key now that it is called `claude`.
+    /// The derivation is pinned: the key for one fixed input, as it was
+    /// derived before AI members were known by their names. Whoever
+    /// changes the info bytes makes every delegation out there useless,
+    /// and this says so.
     #[test]
-    fn delegation_seed_is_the_same_for_a_name_and_its_older_id() {
-        let salt = generate_salt();
-        let by_id = derive_delegation_seed(&FIXED_SEED, &salt, "JOY", "ai:claude@joy");
-        let by_name = derive_delegation_seed(&FIXED_SEED, &salt, "JOY", "claude");
-        assert_eq!(by_id, by_name);
-        let other = derive_delegation_seed(&FIXED_SEED, &salt, "JOY", "qwen");
-        assert_ne!(by_name, other);
+    fn delegation_seed_is_the_one_it_always_was() {
+        let salt = joy_crypt::kdf::Salt::from_bytes([9u8; 32]);
+        let seed = derive_delegation_seed(&FIXED_SEED, &salt, "JOY", "claude");
+        let hex: String = seed.iter().map(|b| format!("{b:02x}")).collect();
+        assert_eq!(
+            hex,
+            "6c8a982e481d5db8e7504f71f408e5a05802b8f9ba9e4939f1d5d67e74cc5884"
+        );
     }
 
     #[test]
     fn delegation_seed_changes_with_salt() {
-        let s1 = derive_delegation_seed(&FIXED_SEED, &generate_salt(), "JOY", "ai:claude@joy");
-        let s2 = derive_delegation_seed(&FIXED_SEED, &generate_salt(), "JOY", "ai:claude@joy");
+        let s1 = derive_delegation_seed(&FIXED_SEED, &generate_salt(), "JOY", "claude");
+        let s2 = derive_delegation_seed(&FIXED_SEED, &generate_salt(), "JOY", "claude");
         assert_ne!(s1, s2);
     }
 
     #[test]
     fn delegation_seed_is_domain_separated_by_project() {
         let salt = generate_salt();
-        let s1 = derive_delegation_seed(&FIXED_SEED, &salt, "JOY", "ai:claude@joy");
-        let s2 = derive_delegation_seed(&FIXED_SEED, &salt, "OTHER", "ai:claude@joy");
+        let s1 = derive_delegation_seed(&FIXED_SEED, &salt, "JOY", "claude");
+        let s2 = derive_delegation_seed(&FIXED_SEED, &salt, "OTHER", "claude");
         assert_ne!(s1, s2);
     }
 
     #[test]
     fn delegation_seed_is_domain_separated_by_member() {
         let salt = generate_salt();
-        let s1 = derive_delegation_seed(&FIXED_SEED, &salt, "JOY", "ai:claude@joy");
-        let s2 = derive_delegation_seed(&FIXED_SEED, &salt, "JOY", "ai:qwen@joy");
+        let s1 = derive_delegation_seed(&FIXED_SEED, &salt, "JOY", "claude");
+        let s2 = derive_delegation_seed(&FIXED_SEED, &salt, "JOY", "qwen");
         assert_ne!(s1, s2);
     }
 
@@ -125,8 +126,8 @@ mod tests {
         let salt = generate_salt();
         let seed_a = FIXED_SEED;
         let seed_b: [u8; 32] = [8u8; 32];
-        let s1 = derive_delegation_seed(&seed_a, &salt, "JOY", "ai:claude@joy");
-        let s2 = derive_delegation_seed(&seed_b, &salt, "JOY", "ai:claude@joy");
+        let s1 = derive_delegation_seed(&seed_a, &salt, "JOY", "claude");
+        let s2 = derive_delegation_seed(&seed_b, &salt, "JOY", "claude");
         assert_ne!(s1, s2);
     }
 }

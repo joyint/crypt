@@ -302,7 +302,7 @@ mod tests {
                 delegation_seed: seed,
             },
             TokenIssueParams {
-                ai_member: "ai:claude@joy",
+                ai_member: "claude",
                 human: "human@example.com",
                 project_id: "TST",
                 ttl,
@@ -347,7 +347,7 @@ mod tests {
         let (seed, delegation, delegation_pk) = fresh_delegation();
         let token = make_token(&delegator, &delegation, &seed, None);
         let claims = validate_token(&token, &delegator_pk, &delegation_pk, "TST").unwrap();
-        assert_eq!(claims.ai_member, "ai:claude@joy");
+        assert_eq!(claims.ai_member, "claude");
         assert_eq!(claims.delegated_by, "human@example.com");
         assert_eq!(token.delegation_public_key, delegation_pk.to_hex());
     }
@@ -384,7 +384,7 @@ mod tests {
         let (delegator, delegator_pk) = test_keypair();
         let (seed, delegation, delegation_pk) = fresh_delegation();
         let mut token = make_token(&delegator, &delegation, &seed, None);
-        token.claims.ai_member = "ai:evil@joy".to_string();
+        token.claims.ai_member = "evil".to_string();
         assert!(validate_token(&token, &delegator_pk, &delegation_pk, "TST").is_err());
     }
 
