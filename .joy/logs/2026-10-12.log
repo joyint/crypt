@@ -1,2 +1,4 @@
 2026-10-12T06:21:52.114Z auth auth.session_created "session created for claude via delegation token" [claude delegated-by:horst.schwarz@joydev.com]
 2026-10-12T06:22:13.170Z CRYPT-0016-B0 item.created [claude delegated-by:horst.schwarz@joydev.com]
+2026-10-12T10:02:22.211Z auth auth.session_created "session created for ai:claude@joy via delegation token" [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
+2026-10-12T10:02:22.248Z CRYPT-0016-B0 comment.added [ai:claude@joy delegated-by:horst.schwarz@joydev.com]
