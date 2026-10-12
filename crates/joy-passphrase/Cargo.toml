@@ -6,9 +6,16 @@ license = { workspace = true }
 repository = { workspace = true }
 description = "The strength of a passphrase in bits and five levels, from zxcvbn — one rule for the CLI, the desktop and the browser (JI-01A5-93)"
 
+[features]
+default = ["estimate"]
+# The strength estimate and its dictionaries, about 2 MB of wasm. A
+# surface that only needs `accept` (the browser's unlock package) leaves
+# it out; the one that draws the meter takes it.
+estimate = ["dep:zxcvbn"]
+
 [dependencies]
 # zxcvbn (Dropbox; Wheeler and Lowe, USENIX Security 2016): the estimate
 # behind the meter. Default features off: the builder is not needed, and
 # nothing of this crate's API depends on the crate's own score.
-zxcvbn = { version = "3.1", default-features = false }
+zxcvbn = { version = "3.1", default-features = false, optional = true }
 thiserror = { workspace = true }

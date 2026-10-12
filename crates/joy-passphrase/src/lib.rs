@@ -33,9 +33,11 @@
 
 #![forbid(unsafe_code)]
 
+#[cfg(feature = "estimate")]
 use std::f64::consts::LOG2_10;
 
 use thiserror::Error;
+#[cfg(feature = "estimate")]
 use zxcvbn::matching::patterns::MatchPattern;
 
 /// Why a passphrase is not accepted at all.
@@ -118,6 +120,7 @@ pub struct Strength {
 
 /// Judge a passphrase. Every surface calls this on every keystroke, so
 /// it takes the text as it stands, empty included.
+#[cfg(feature = "estimate")]
 pub fn strength(passphrase: &str) -> Strength {
     if passphrase.is_empty() {
         return Strength {
@@ -135,6 +138,7 @@ pub fn strength(passphrase: &str) -> Strength {
 
 /// `log2` of the guess count: the crate's own while its integer holds,
 /// else the same formula over the chosen sequence in floating point.
+#[cfg(feature = "estimate")]
 fn bits_of(passphrase: &str, estimate: &zxcvbn::Entropy) -> f64 {
     if estimate.guesses() < u64::MAX {
         return estimate.guesses_log10() * LOG2_10;
@@ -143,6 +147,7 @@ fn bits_of(passphrase: &str, estimate: &zxcvbn::Entropy) -> f64 {
 }
 
 /// The crate's formula over its chosen sequence, in floating point.
+#[cfg(feature = "estimate")]
 fn recompute(passphrase: &str, estimate: &zxcvbn::Entropy) -> f64 {
     let sequence = estimate.sequence();
     let l = sequence.len();
@@ -176,6 +181,7 @@ fn recompute(passphrase: &str, estimate: &zxcvbn::Entropy) -> f64 {
 }
 
 /// `log2(2^a + 2^b)` without leaving log space.
+#[cfg(feature = "estimate")]
 fn log2_sum(a: f64, b: f64) -> f64 {
     let (hi, lo) = if a >= b { (a, b) } else { (b, a) };
     hi + (1.0 + 2f64.powf(lo - hi)).log2()
@@ -225,6 +231,7 @@ mod tests {
         assert!(Level::Insufficient < Level::Excellent);
     }
 
+    #[cfg(feature = "estimate")]
     #[test]
     fn known_inputs_land_where_the_decision_says() {
         assert_eq!(strength("q w e").level, Level::Insufficient);
@@ -247,6 +254,7 @@ mod tests {
 
     /// Below the crate's integer ceiling the floating point arithmetic
     /// and the crate's own number are the same number.
+    #[cfg(feature = "estimate")]
     #[test]
     fn the_recomputation_agrees_with_the_crate_where_the_crate_can_count() {
         for passphrase in [
@@ -268,6 +276,7 @@ mod tests {
 
     /// Above the ceiling the number keeps growing with the passphrase
     /// instead of stopping at 64.
+    #[cfg(feature = "estimate")]
     #[test]
     fn the_bits_keep_growing_past_the_integer_ceiling() {
         let four = strength("ladle quartz nimbus fjord").bits;
@@ -280,6 +289,7 @@ mod tests {
         assert!(eight <= 56.0 * LOG2_10 + 1e-9, "{eight}");
     }
 
+    #[cfg(feature = "estimate")]
     #[test]
     fn the_bits_grow_with_the_passphrase_and_start_at_zero() {
         assert_eq!(strength("").bits, 0.0);
