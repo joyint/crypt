@@ -126,6 +126,21 @@ pub fn wrap_seed_with_recovery(
     Ok(hex::encode(wrapped))
 }
 
+/// Rewrap a seed under a new passphrase (CRYPT-0017-E7): unwrap with
+/// the current one (a wrong one fails as every unlock does), wrap the
+/// same seed under the new passphrase KEK with the same `kdf_nonce`.
+/// The recovery wrap and the identity are untouched. One function for
+/// the CLI, the desktop and the browser.
+pub fn rewrap_seed_with_passphrase(
+    wrap_hex: &str,
+    current: &str,
+    new: &str,
+    kdf_nonce: &Salt,
+) -> Result<String, Error> {
+    let seed = unwrap_seed_with_passphrase(wrap_hex, current, kdf_nonce)?;
+    wrap_seed_with_passphrase(&seed, new, kdf_nonce)
+}
+
 /// Unwrap a seed via the passphrase KEK. Returns the 32-byte seed on
 /// success; AES-GCM auth failure indicates wrong passphrase.
 pub fn unwrap_seed_with_passphrase(
@@ -270,5 +285,41 @@ mod tests {
     fn recovery_key_rejects_bad_input() {
         assert!(RecoveryKey::from_user_input("zzz").is_err());
         assert!(RecoveryKey::from_user_input("joy_r_00").is_err());
+    }
+
+    #[test]
+    fn rewrap_moves_the_same_seed_under_the_new_passphrase_only() {
+        let seed = Seed::generate();
+        let nonce = crate::kdf::generate_salt();
+        let old = wrap_seed_with_passphrase(&seed, "q w e", &nonce).unwrap();
+        let new =
+            rewrap_seed_with_passphrase(&old, "q w e", "ladle quartz nimbus", &nonce).unwrap();
+        assert_ne!(old, new);
+        let opened = unwrap_seed_with_passphrase(&new, "ladle quartz nimbus", &nonce).unwrap();
+        assert_eq!(opened.as_bytes(), seed.as_bytes());
+        assert!(unwrap_seed_with_passphrase(&new, "q w e", &nonce).is_err());
+        // the old wrap still opens with the old passphrase; replacing it is
+        // the caller's write
+        assert!(unwrap_seed_with_passphrase(&old, "q w e", &nonce).is_ok());
+    }
+
+    #[test]
+    fn rewrap_refuses_a_wrong_current_passphrase() {
+        let seed = Seed::generate();
+        let nonce = crate::kdf::generate_salt();
+        let old = wrap_seed_with_passphrase(&seed, "q w e", &nonce).unwrap();
+        assert!(matches!(
+            rewrap_seed_with_passphrase(&old, "wrong", "anything", &nonce),
+            Err(Error::Auth(_))
+        ));
+    }
+
+    #[test]
+    fn rewrap_takes_any_non_empty_new_passphrase() {
+        let seed = Seed::generate();
+        let nonce = crate::kdf::generate_salt();
+        let old = wrap_seed_with_passphrase(&seed, "q w e", &nonce).unwrap();
+        let new = rewrap_seed_with_passphrase(&old, "q w e", "x", &nonce).unwrap();
+        assert!(unwrap_seed_with_passphrase(&new, "x", &nonce).is_ok());
     }
 }

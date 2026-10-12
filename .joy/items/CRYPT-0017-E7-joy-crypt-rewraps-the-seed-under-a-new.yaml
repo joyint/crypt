@@ -1,0 +1,13 @@
+id: CRYPT-0017-E7
+title: joy-crypt rewraps the seed under a new passphrase, one function for CLI, desktop and browser
+type: task
+status: new
+priority: high
+capabilities:
+- implement
+effort: 2
+created_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+created: 2026-10-12T10:33:31.664579589Z
+updated: 2026-10-12T10:33:31.664579589Z
+updated_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+description: 'Part of the passphrase change across the surfaces (operator 2026-10-12; CLI has joy auth passphrase, app and platform have nothing). seed::rewrap_seed_with_passphrase(wrap_hex, current, new, kdf_nonce) -> Result<String>: unwraps with the current passphrase (a wrong one fails as Aead, like every unlock), wraps the same seed under the new passphrase KEK with the same kdf_nonce, returns the new hex wrap. The recovery wrap and the identity are untouched. joyint-web-auth exports it for the browser, joy-core calls it for the CLI and the desktop, so there is one rewrap. Tests: the new wrap opens with the new passphrase and stays closed to the old one, the seed is the same bytes, a wrong current passphrase is refused, the new passphrase may be any non-empty text (accept is the caller''s).'
