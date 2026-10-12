@@ -17,15 +17,11 @@
 //! derived from. Nothing is normalised: the bytes judged here are the
 //! bytes Argon2id will hash.
 //!
-//! The Rust crate counts guesses in a 64-bit integer and saturates at
-//! 2^64, which the reference implementation (JavaScript, doubles) does
-//! not. Where it saturates, [`strength`] redoes the arithmetic of the
-//! sequence the crate chose in floating point, with the crate's own
-//! formula (`l! × Π guesses + 10^(4(l-1))`), and never reports more than
-//! the whole string as one brute-force guess (10 per character). Below
-//! 64 bit the two agree exactly; above, the value is the crate's chosen
-//! sequence, which the integer search may not have picked as the
-//! smallest.
+//! The Rust crate counts guesses in a 64-bit integer and stops at 2^64:
+//! everything beyond reads as exactly 64 bit, and there the five levels
+//! end too. The top level is that ceiling, shown as "entropy >64 bit",
+//! because the number beyond it is not known (CRYPT-0018-87, the reminder
+//! for the day upstream counts further).
 //!
 //! The crate has no dependency on joy-crypt and builds for native
 //! targets and for wasm32-unknown-unknown alike, so the CLI, the desktop
@@ -37,8 +33,6 @@
 use std::f64::consts::LOG2_10;
 
 use thiserror::Error;
-#[cfg(feature = "estimate")]
-use zxcvbn::matching::patterns::MatchPattern;
 
 /// Why a passphrase is not accepted at all.
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -60,8 +54,8 @@ pub enum Level {
     Good,
     /// From 60 bit: out of reach for any farm.
     VeryGood,
-    /// From 80 bit: beyond realistic compute; with the Argon2id work
-    /// factor the effective cost is above 100 bit.
+    /// The estimator's ceiling, 64 bit and whatever lies beyond: with
+    /// the Argon2id work factor the effective cost is above 80 bit.
     Excellent,
 }
 
@@ -69,7 +63,16 @@ pub enum Level {
 /// [`Level::VeryGood`] and [`Level::Excellent`], in that order. The
 /// time estimates in the level docs assume about a thousand Argon2id
 /// guesses per second per GPU with joy-crypt's parameters (64 MiB, t=3).
-pub const THRESHOLDS: [f64; 4] = [28.0, 45.0, 60.0, 80.0];
+pub const THRESHOLDS: [f64; 4] = [28.0, 45.0, 60.0, CEILING];
+
+/// Where the estimator stops counting: `log2(u64::MAX)`. A passphrase
+/// at the ceiling is at least this strong; how much more is not known.
+pub const CEILING: f64 = 64.0;
+
+/// The one sentence a person confirms to keep an insufficient passphrase
+/// (operator 2026-10-12): the CLI asks it with (y/N), the app shows it
+/// as the checkbox under the meter.
+pub const RISK_SENTENCE: &str = "I know and accept the risk.";
 
 impl Level {
     /// The level the bits fall into.
@@ -113,9 +116,34 @@ impl Level {
 /// What the meter shows: the entropy in bits and the level it falls into.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Strength {
-    /// `log2` of zxcvbn's guess estimate. Zero for an empty passphrase.
+    /// `log2` of zxcvbn's guess estimate, at most [`CEILING`]. Zero for
+    /// an empty passphrase.
     pub bits: f64,
     pub level: Level,
+}
+
+impl Strength {
+    /// The words next to the bar, the same on every surface:
+    /// `good (entropy 47 bit)`, or `excellent (entropy >64 bit)` at the
+    /// ceiling. The longest possible text is
+    /// `insufficient (entropy 27 bit)`.
+    pub fn text(&self) -> String {
+        if self.bits >= CEILING {
+            format!("{} (entropy >{} bit)", self.level.label(), CEILING as u64)
+        } else {
+            format!(
+                "{} (entropy {} bit)",
+                self.level.label(),
+                self.bits.round() as u64
+            )
+        }
+    }
+
+    /// Whether setting this passphrase takes the person's word for the
+    /// risk: insufficient, and typed at all.
+    pub fn needs_risk_acknowledgement(&self) -> bool {
+        self.level == Level::Insufficient && self.bits > 0.0
+    }
 }
 
 /// Judge a passphrase. Every surface calls this on every keystroke, so
@@ -128,63 +156,11 @@ pub fn strength(passphrase: &str) -> Strength {
             level: Level::Insufficient,
         };
     }
-    let estimate = zxcvbn::zxcvbn(passphrase, &[]);
-    let bits = bits_of(passphrase, &estimate);
+    let bits = zxcvbn::zxcvbn(passphrase, &[]).guesses_log10() * LOG2_10;
     Strength {
         bits,
         level: Level::of(bits),
     }
-}
-
-/// `log2` of the guess count: the crate's own while its integer holds,
-/// else the same formula over the chosen sequence in floating point.
-#[cfg(feature = "estimate")]
-fn bits_of(passphrase: &str, estimate: &zxcvbn::Entropy) -> f64 {
-    if estimate.guesses() < u64::MAX {
-        return estimate.guesses_log10() * LOG2_10;
-    }
-    recompute(passphrase, estimate)
-}
-
-/// The crate's formula over its chosen sequence, in floating point.
-#[cfg(feature = "estimate")]
-fn recompute(passphrase: &str, estimate: &zxcvbn::Entropy) -> f64 {
-    let sequence = estimate.sequence();
-    let l = sequence.len();
-    // log2(l!) + Σ log2(guesses of each match)
-    let mut product = (1..=l).map(|k| (k as f64).log2()).sum::<f64>();
-    for m in sequence {
-        product += match m.pattern {
-            // 10 per character, and one more than the smallest submatch
-            // for a single character, as scoring.rs estimates it
-            MatchPattern::BruteForce => {
-                let n = m.token.chars().count();
-                if n == 1 {
-                    11f64.log2()
-                } else {
-                    n as f64 * LOG2_10
-                }
-            }
-            _ => (m.guesses.unwrap_or(1) as f64).log2(),
-        };
-    }
-    // the additive term: 10^(4(l-1)) for a sequence of more than one match
-    let total = if l > 1 {
-        let additive = 4.0 * (l as f64 - 1.0) * LOG2_10;
-        log2_sum(product, additive)
-    } else {
-        product
-    };
-    // the whole string as one brute-force match is always a valid sequence
-    let whole = passphrase.chars().count() as f64 * LOG2_10;
-    total.min(whole)
-}
-
-/// `log2(2^a + 2^b)` without leaving log space.
-#[cfg(feature = "estimate")]
-fn log2_sum(a: f64, b: f64) -> f64 {
-    let (hi, lo) = if a >= b { (a, b) } else { (b, a) };
-    hi + (1.0 + 2f64.powf(lo - hi)).log2()
 }
 
 /// Whether a passphrase may be set at all. Only an empty one is refused;
@@ -209,9 +185,8 @@ mod tests {
         assert_eq!(Level::of(45.0), Level::Good);
         assert_eq!(Level::of(59.99), Level::Good);
         assert_eq!(Level::of(60.0), Level::VeryGood);
-        assert_eq!(Level::of(79.99), Level::VeryGood);
-        assert_eq!(Level::of(80.0), Level::Excellent);
-        assert_eq!(Level::of(200.0), Level::Excellent);
+        assert_eq!(Level::of(63.99), Level::VeryGood);
+        assert_eq!(Level::of(64.0), Level::Excellent);
     }
 
     #[test]
@@ -239,54 +214,48 @@ mod tests {
         assert_eq!(strength("password123").level, Level::Insufficient);
         assert_eq!(strength("qwerty").level, Level::Insufficient);
         assert_eq!(strength("Tr0ub4dor&3").level, Level::Sufficient);
-        // zxcvbn counts ten guesses per character of random text, so
-        // fourteen of them are Good, and twenty-five Excellent
+        // zxcvbn counts ten guesses per character of random text:
+        // fourteen are Good, nineteen VeryGood, twenty-five at the ceiling
         assert_eq!(strength("k7#Qz9!vLp2&Rm").level, Level::Good);
+        assert_eq!(strength("k7#Qz9!vLp2&Rm8xW!c").level, Level::VeryGood);
         assert_eq!(
             strength("k7#Qz9!vLp2&Rm8xW!c4Nb@Yq").level,
             Level::Excellent
         );
-        // four Diceware words with their spaces are seven matches, and
-        // zxcvbn's additive term alone makes that about 80 bit
-        assert!(strength("correct horse battery staple").level >= Level::VeryGood);
-        assert!(strength("ladle quartz nimbus fjord carapace velvet").level == Level::Excellent);
+        // four random words with their spaces are at the ceiling
+        assert_eq!(
+            strength("ladle quartz nimbus fjord").level,
+            Level::Excellent
+        );
+        assert_eq!(strength("the quick brown fox").level, Level::Good);
     }
 
-    /// Below the crate's integer ceiling the floating point arithmetic
-    /// and the crate's own number are the same number.
+    /// The number is the crate's own and the same on every call; it ends
+    /// at the ceiling instead of going on.
     #[cfg(feature = "estimate")]
     #[test]
-    fn the_recomputation_agrees_with_the_crate_where_the_crate_can_count() {
-        for passphrase in [
-            "the quick brown fox",
-            "Tr0ub4dor&3",
-            "k7#Qz9!vLp2&Rm",
-            "q w e",
-        ] {
-            let estimate = zxcvbn::zxcvbn(passphrase, &[]);
-            assert!(estimate.guesses() < u64::MAX, "{passphrase} saturates");
-            let crate_bits = estimate.guesses_log10() * LOG2_10;
-            let recomputed = recompute(passphrase, &estimate);
-            assert!(
-                (crate_bits - recomputed).abs() < 1e-3,
-                "{passphrase}: crate {crate_bits}, recomputed {recomputed}"
-            );
+    fn the_number_stops_at_the_ceiling_and_does_not_move_between_calls() {
+        let long = "ladle quartz nimbus fjord carapace velvet orchid tundra";
+        let first = strength(long);
+        assert_eq!(first.bits, CEILING);
+        assert_eq!(first.level, Level::Excellent);
+        for _ in 0..20 {
+            assert_eq!(strength(long).bits, first.bits);
         }
     }
 
-    /// Above the ceiling the number keeps growing with the passphrase
-    /// instead of stopping at 64.
     #[cfg(feature = "estimate")]
     #[test]
-    fn the_bits_keep_growing_past_the_integer_ceiling() {
-        let four = strength("ladle quartz nimbus fjord").bits;
-        let six = strength("ladle quartz nimbus fjord carapace velvet").bits;
-        let eight = strength("ladle quartz nimbus fjord carapace velvet orchid tundra").bits;
-        assert!(four > 64.0, "{four}");
-        assert!(six > four, "{six} > {four}");
-        assert!(eight > six, "{eight} > {six}");
-        // and never more than the whole string as one brute-force guess
-        assert!(eight <= 56.0 * LOG2_10 + 1e-9, "{eight}");
+    fn the_text_names_the_level_and_the_bits_and_the_ceiling() {
+        assert_eq!(strength("q w e").text(), "insufficient (entropy 17 bit)");
+        assert_eq!(
+            strength("ladle quartz nimbus fjord").text(),
+            "excellent (entropy >64 bit)"
+        );
+        assert_eq!(strength("").text(), "insufficient (entropy 0 bit)");
+        assert!(strength("q w e").needs_risk_acknowledgement());
+        assert!(!strength("").needs_risk_acknowledgement());
+        assert!(!strength("the quick brown fox").needs_risk_acknowledgement());
     }
 
     #[cfg(feature = "estimate")]
