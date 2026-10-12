@@ -1,0 +1,14 @@
+id: CRYPT-0018-87
+title: 'joy-passphrase: count beyond 64 bit once zxcvbn-rs releases the fix'
+type: rework
+status: new
+priority: low
+capabilities:
+- implement
+- review
+effort: 2
+created_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+created: 2026-10-12T15:59:50.702203825Z
+updated: 2026-10-12T15:59:50.702203825Z
+updated_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+description: 'Reminder (operator 2026-10-12). The released zxcvbn 3.1.1 counts guesses in a u64 and stops at 2^64, so joy-passphrase''s number ends at 64 bit and the fifth level is that ceiling, shown as ''entropy >64 bit''. Upstream merged the fix on 2026-06-01 (PR #95 ''Preserve guesses_log10 beyond u64 saturation'', commit 4e8e784) but has not released it; a git dependency or a fork are no options (operator). When a release with that change is on crates.io: take it, remove CEILING and the ''>64 bit'' text, and decide with the operator where the fifth level''s threshold goes (the decision JI-01A5-93 named 80 bit). Check the four doc places: tutorial (both copies), website features page, SECURITY.md of joy and crypt.'

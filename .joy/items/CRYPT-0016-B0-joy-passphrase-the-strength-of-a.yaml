@@ -1,0 +1,39 @@
+id: CRYPT-0016-B0
+title: 'joy-passphrase: the strength of a passphrase in bits and five levels, from zxcvbn, for every surface'
+type: task
+status: new
+priority: high
+capabilities:
+- implement
+effort: 3
+created_by: claude delegated-by:horst.schwarz@joydev.com
+created: 2026-10-12T06:22:13.168851605Z
+updated: 2026-10-12T16:05:50.039886071Z
+updated_by: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+description: |-
+  Implements the shared rule of JI-01A5-93: one function that every surface calls to judge a passphrase while it is typed. JOY-02CC-46 (CLI, joy-core), JAPP-0317-69 (dialog, desktop, web) and JISITE-006E-C2 (website) depend on it.
+
+  A new crate crates/joy-passphrase in this workspace, next to joy-crypt and joy-token, so joyint-web-auth and every other user of joy-crypt do not pull zxcvbn in. It builds for native targets and for wasm32-unknown-unknown like joy-crypt does.
+
+  API
+  - strength(passphrase: &str) -> Strength { bits: f64, level: Level }.
+  - Level: Insufficient, Sufficient, Good, VeryGood, Excellent; thresholds 28, 45, 60, 80 bit; Level::of(bits). The level names in English and German are given once, next to the enum, for the CLI and the app to show.
+  - bits = guesses_log10 x log2(10) from zxcvbn 3.1 (Dropbox, Wheeler and Lowe, USENIX Security 2016), default features off, no user inputs. The crate's own score (0 to 4) is not exposed.
+  - accept(passphrase: &str) -> Result<(), Error>: the only refusal is an empty passphrase. Nothing else is rejected.
+  No normalisation: the bytes go to Argon2id as they are today (kdf.rs), so the estimate is made on exactly what will be hashed.
+
+  Tests
+  - The thresholds: a value just below and at each boundary maps to the expected level.
+  - Known inputs: 'q w e' and 'a a a' are Insufficient; 'correct horse battery staple' is Good or lower (it is in the password list); six random Diceware words are VeryGood or better; eight are Excellent; a 14-character random string is Excellent; the empty string is refused.
+  - The same inputs give the same bits natively and in a wasm32 build, so CLI, desktop and browser agree to the bit.
+
+  Packaging, decided on JI-01A5-93 (comment of 2026-10-12): zxcvbn adds 2.3 MB raw and 900 KB gzip to a WASM package (1.1 MB gzip with opt-level z and LTO). The crate itself is the same under either way; what changes is whether the web app loads it in its own WASM module on demand (way 1) or whether this crate wraps a trimmed fork (way 2).
+
+  Done when: cargo test green natively and the wasm32 build of the crate succeeds, SECURITY.md of this repo names the crate in one sentence next to the Argon2id parameters.
+comments:
+- author: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+  date: 2026-10-12T10:02:22.246300260Z
+  text: 'Done on feat/passphrase-meter (e6a28d2, c61ccc2): crate joy-passphrase with strength, accept, Level (of, label, rank), THRESHOLDS; feature ''estimate'' (default on) carries zxcvbn, so joyint-web-auth takes accept alone and stays at its size. Two things the description did not know: (1) zxcvbn-rs counts guesses in a u64 and saturates at 2^64, so everything above 64 bit read as exactly 64; where it saturates the crate''s own formula (l! x product of the matches'' guesses + 10^(4(l-1))) is redone over the chosen sequence in floating point, as the JavaScript reference does with doubles, and never more than the whole string as one brute-force guess; below 64 bit the two numbers agree (tested), above it the value is the sequence the integer search picked. (2) zxcvbn counts ten guesses per character of random text, so 14 random characters are 47 bit (good), 25 are excellent, and ''correct horse battery staple'' is 87 bit because its four words and three spaces are seven matches and the additive term alone is 80 bit; the tests say so instead of the description''s ''Good or lower''. Tests: thresholds at each boundary, known inputs per level, agreement below the ceiling, growth above it, accept; native and wasm32 build; cargo clippy and fmt clean. SECURITY.md names the crate.'
+- author: ai:claude@joy delegated-by:horst.schwarz@joydev.com
+  date: 2026-10-12T16:05:50.039885449Z
+  text: 'Correction (a887010), after the operator saw one passphrase read 67, 82 and 90 bit in the app: the jumping was my own doing, not the crate''s. zxcvbn-rs 3.1.1 stops at 2^64 and reads exactly 64 bit there, deterministic. My floating point recomputation went over the sequence the crate had picked, and above the ceiling that pick is arbitrary per call. The recomputation is gone; the crate''s own number is shown, the fifth level is the ceiling (64 bit and beyond, text ''entropy >64 bit''), very good runs from 60 to 64. Strength::text and RISK_SENTENCE (''I know and accept the risk.'') live here once for the CLI and the app. CRYPT-0018-87 reminds to count further when upstream releases its fix; a git dependency or a fork are no options.'
