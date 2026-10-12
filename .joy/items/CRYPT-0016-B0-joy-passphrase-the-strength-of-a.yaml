@@ -1,0 +1,32 @@
+id: CRYPT-0016-B0
+title: 'joy-passphrase: the strength of a passphrase in bits and five levels, from zxcvbn, for every surface'
+type: task
+status: new
+priority: high
+capabilities:
+- implement
+effort: 3
+created_by: claude delegated-by:horst.schwarz@joydev.com
+created: 2026-10-12T06:22:13.168851605Z
+updated: 2026-10-12T06:22:13.168851605Z
+updated_by: claude delegated-by:horst.schwarz@joydev.com
+description: |-
+  Implements the shared rule of JI-01A5-93: one function that every surface calls to judge a passphrase while it is typed. JOY-02CC-46 (CLI, joy-core), JAPP-0317-69 (dialog, desktop, web) and JISITE-006E-C2 (website) depend on it.
+
+  A new crate crates/joy-passphrase in this workspace, next to joy-crypt and joy-token, so joyint-web-auth and every other user of joy-crypt do not pull zxcvbn in. It builds for native targets and for wasm32-unknown-unknown like joy-crypt does.
+
+  API
+  - strength(passphrase: &str) -> Strength { bits: f64, level: Level }.
+  - Level: Insufficient, Sufficient, Good, VeryGood, Excellent; thresholds 28, 45, 60, 80 bit; Level::of(bits). The level names in English and German are given once, next to the enum, for the CLI and the app to show.
+  - bits = guesses_log10 x log2(10) from zxcvbn 3.1 (Dropbox, Wheeler and Lowe, USENIX Security 2016), default features off, no user inputs. The crate's own score (0 to 4) is not exposed.
+  - accept(passphrase: &str) -> Result<(), Error>: the only refusal is an empty passphrase. Nothing else is rejected.
+  No normalisation: the bytes go to Argon2id as they are today (kdf.rs), so the estimate is made on exactly what will be hashed.
+
+  Tests
+  - The thresholds: a value just below and at each boundary maps to the expected level.
+  - Known inputs: 'q w e' and 'a a a' are Insufficient; 'correct horse battery staple' is Good or lower (it is in the password list); six random Diceware words are VeryGood or better; eight are Excellent; a 14-character random string is Excellent; the empty string is refused.
+  - The same inputs give the same bits natively and in a wasm32 build, so CLI, desktop and browser agree to the bit.
+
+  Packaging, decided on JI-01A5-93 (comment of 2026-10-12): zxcvbn adds 2.3 MB raw and 900 KB gzip to a WASM package (1.1 MB gzip with opt-level z and LTO). The crate itself is the same under either way; what changes is whether the web app loads it in its own WASM module on demand (way 1) or whether this crate wraps a trimmed fork (way 2).
+
+  Done when: cargo test green natively and the wasm32 build of the crate succeeds, SECURITY.md of this repo names the crate in one sentence next to the Argon2id parameters.
