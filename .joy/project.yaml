@@ -2,7 +2,7 @@ name: Crypt
 acronym: CRYPT
 language: en
 members:
-  ai:claude@joy:
+  claude:
     capabilities:
       conceive: {}
       plan: {}
@@ -38,7 +38,7 @@ members:
     seed_wrap_passphrase: f701d28001e70fa29a272307db4e6e6cfbd72663ce7ddf4bc2e24de018dcc2ed82a2cd9902fd8384cccae73911805a19ceebc40c8a1f4fe185cbb781
     seed_wrap_recovery: 647e3126c5f544594d538f4f74906c3c35b07967a9a688678d19ed0132de2936b1a57397215a18e8f55894682e188aeb72ea737c40e47122b7011f77
     ai_delegations:
-      ai:claude@joy:
+      claude:
         delegation_verifier: 61f511603f54d91e201d2acdb3d5c5fab53e850773324abd6957271cbc3e2bde
         delegation_salt: a9ebdbcd382e99c35c084978d64a46004bdb0f66a9e5d4ddeaa4ae7b228442fa
         created: 2026-05-03T10:52:15.153683Z
