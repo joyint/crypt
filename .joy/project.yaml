@@ -70,3 +70,4 @@ release:
   - path: crates/joy-crypt/Cargo.toml
     key: package.version
   - crates/joy-token/Cargo.toml
+  - crates/joy-passphrase/Cargo.toml
