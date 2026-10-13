@@ -1,7 +1,7 @@
 id: CRYPT-0019-9F
 title: joy-passphrase is not published, so joy-core cannot be uploaded to crates.io
 type: bug
-status: in-progress
+status: review
 priority: critical
 assignees:
 - member: claude
@@ -10,7 +10,7 @@ capabilities:
 - review
 created_by: claude delegated-by:horst.schwarz@joydev.com
 created: 2026-10-13T15:21:49.366961950Z
-updated: 2026-10-13T15:22:56.595874768Z
+updated: 2026-10-13T18:12:59.881505044Z
 updated_by: claude delegated-by:horst.schwarz@joydev.com
 description: |-
   CRYPT-0016-B0 added the crate joy-passphrase, and joy-core and joy-cli depend on it since JOY-02CC-46 (version "0" and a path). The crate is not on crates.io (asked of the crates.io API on 2026-10-13), and nothing here would put it there:
@@ -40,3 +40,12 @@ comments:
     [x] just check green (82 tests).
     [ ] release.version-files still lacks crates/joy-passphrase/Cargo.toml. 'joy project set release.version-files --add crates/joy-passphrase/Cargo.toml' was refused: an AI member cannot perform manage actions. It is the operator's to run. Until it is in, a release leaves the crate at 0.2.0 while the other two move on, and it is uploaded once and never again.
     Then still owed in joy: its Cargo.lock records joy-passphrase 0.1.0, and platform's agent image builds joy-cli with --locked.
+- author: claude delegated-by:horst.schwarz@joydev.com
+  date: 2026-10-13T18:12:59.863101128Z
+  text: |-
+    Result:
+    [x] release.version-files: the operator added crates/joy-passphrase/Cargo.toml on 2026-10-13 with joy project set --add; it reaches main with the umbrella's next apply.
+    [x] joyint/crypt#5: the crate is uploaded with the other two and stands at 0.2.0, so a bump moves all three.
+    [x] joyint/joy#78: joy's Cargo.lock records joy-passphrase 0.2.0; cargo build --locked -p joy-cli passes with it and was refused without it.
+    Not tried, because it would publish: the upload itself. cargo publish --dry-run packed and verified the crate.
+    Left as they are: the lock files of platform and app still record 0.1.0. Nothing there builds with --locked, and the release commits a changed lock file per repository.
