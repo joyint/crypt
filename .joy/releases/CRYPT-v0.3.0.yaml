@@ -1,0 +1,14 @@
+version: v0.3.0
+date: 2026-10-13
+previous: v0.2.0
+contributors:
+- id: claude delegated-by:horst.schwarz@joydev.com
+  events: 5
+  items: 1
+- id: horst.schwarz@joydev.com
+  events: 1
+  items: 1
+items:
+  tasks:
+  - id: CRYPT-0014-D8
+    title: align AI Automation grants with jobs-as-items (JOY-01FE-37)
