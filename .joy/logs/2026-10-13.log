@@ -1,1 +1,7 @@
 2026-10-13T13:33:31.277Z CRYPT-0014-D8 item.status_changed "review -> closed" [horst.schwarz@joydev.com]
+2026-10-13T15:20:21.898Z auth auth.session_created "session created for claude via delegation token" [claude delegated-by:horst.schwarz@joydev.com]
+2026-10-13T15:21:49.368Z CRYPT-0019-9F item.created [claude delegated-by:horst.schwarz@joydev.com]
+2026-10-13T15:21:49.393Z CRYPT-0019-9F comment.added [claude delegated-by:horst.schwarz@joydev.com]
+2026-10-13T15:21:49.414Z CRYPT-0019-9F item.status_changed "new -> in-progress" [claude delegated-by:horst.schwarz@joydev.com]
+2026-10-13T15:21:58.758Z project guard.denied "AI member claude cannot perform manage actions" [claude delegated-by:horst.schwarz@joydev.com]
+2026-10-13T15:22:56.597Z CRYPT-0019-9F comment.added [claude delegated-by:horst.schwarz@joydev.com]

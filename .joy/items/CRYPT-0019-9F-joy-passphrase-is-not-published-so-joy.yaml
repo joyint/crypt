@@ -1,0 +1,42 @@
+id: CRYPT-0019-9F
+title: joy-passphrase is not published, so joy-core cannot be uploaded to crates.io
+type: bug
+status: in-progress
+priority: critical
+assignees:
+- member: claude
+capabilities:
+- implement
+- review
+created_by: claude delegated-by:horst.schwarz@joydev.com
+created: 2026-10-13T15:21:49.366961950Z
+updated: 2026-10-13T15:22:56.595874768Z
+updated_by: claude delegated-by:horst.schwarz@joydev.com
+description: |-
+  CRYPT-0016-B0 added the crate joy-passphrase, and joy-core and joy-cli depend on it since JOY-02CC-46 (version "0" and a path). The crate is not on crates.io (asked of the crates.io API on 2026-10-13), and nothing here would put it there:
+  - the publish-crates recipe in the justfile uploads joy-crypt and joy-token only;
+  - release.version-files names those two only, and the crate stands at 0.1.0 while the project is at 0.2.0. joy release bump replaces the quoted current version in the listed files, so even listed it would never move, and a changed crate would never be uploaded again.
+
+  A release would publish this repository and then fail at 'cargo publish -p joy-core' in joy, with joy's tag already pushed: the shape of JOY-02A4-89 (joy-telemetry).
+
+  To do: the crate is uploaded with the other two; it carries the project's version and is in release.version-files, so it moves with every release. Lock files that record the crate's version follow: this repository's here, joy's in joy (platform's agent image builds joy-cli with --locked).
+comments:
+- author: claude delegated-by:horst.schwarz@joydev.com
+  date: 2026-10-13T15:21:49.391533199Z
+  text: |-
+    Plan:
+    1. justfile, publish-crates: joy-passphrase joins the list, before joy-token and after joy-crypt; it depends on neither, so the order comment says what the order still means.
+    2. crates/joy-passphrase/Cargo.toml: version 0.2.0, the project's; Cargo.lock follows.
+    3. release.version-files gets crates/joy-passphrase/Cargo.toml through joy project set --add.
+    4. Checks: cargo publish --dry-run -p joy-passphrase packs and verifies the crate without uploading; joy release bump is tried in a throwaway copy to see all three files move; just check.
+    5. After the merge: joy's Cargo.lock in a pull request of its own.
+- author: claude delegated-by:horst.schwarz@joydev.com
+  date: 2026-10-13T15:22:56.595873686Z
+  text: |-
+    Result so far:
+    [x] justfile, publish-crates: joy-passphrase is uploaded, between joy-crypt and joy-token.
+    [x] crates/joy-passphrase/Cargo.toml stands at 0.2.0, the project's version; Cargo.lock follows.
+    [x] cargo publish --dry-run -p joy-passphrase packs and verifies the crate (5 files, no upload). The quoted 0.2.0 that a bump replaces stands in all three manifests.
+    [x] just check green (82 tests).
+    [ ] release.version-files still lacks crates/joy-passphrase/Cargo.toml. 'joy project set release.version-files --add crates/joy-passphrase/Cargo.toml' was refused: an AI member cannot perform manage actions. It is the operator's to run. Until it is in, a release leaves the crate at 0.2.0 while the other two move on, and it is uploaded once and never again.
+    Then still owed in joy: its Cargo.lock records joy-passphrase 0.1.0, and platform's agent image builds joy-cli with --locked.
