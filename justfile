@@ -109,8 +109,10 @@ publish-crates:
         echo "  - CI: export it from the runner's secret store."
         exit 1
     fi
-    # Order matters: joy-token depends on joy-crypt.
-    crates=(joy-crypt joy-token)
+    # Order matters: joy-token depends on joy-crypt. joy-passphrase
+    # depends on neither; joy-core does not upload without it
+    # (CRYPT-0019-9F).
+    crates=(joy-crypt joy-passphrase joy-token)
     for crate in "${crates[@]}"; do
         version=$(cargo pkgid --quiet -p "$crate" 2>/dev/null | sed 's/.*[#@]\(.*\)/\1/')
         if [ -z "$version" ]; then
