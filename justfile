@@ -77,7 +77,8 @@ release bump="patch" prerelease="":
     # its own audit trail.
     just auto-commit
     if [ -n "$(git status --porcelain)" ]; then
-        echo "Error: working tree is not clean."
+        echo "Error: working tree is not clean:"
+        git status --short | sed -n '1,20s/^/  /p'
         exit 1
     fi
     echo "Updating external dependencies..."
@@ -88,10 +89,25 @@ release bump="patch" prerelease="":
     echo "Refreshing Cargo.lock..."
     cargo update --workspace
     echo "Checking (format, lint, test)..."
-    if ! just check > /dev/null 2>&1; then
-        echo "Checks failed. Run 'just check' for details. Rolling bump back."
+    # The output is kept: a check that fails only here, on the bumped
+    # tree, cannot be asked again once the bump is rolled back.
+    check_log="${TMPDIR:-/tmp}/crypt-release-check.log"
+    if ! just check > "$check_log" 2>&1; then
+        echo "Checks failed. What failed, from $check_log:"
+        grep -E 'FAILED|panicked at|^error|^not ok|recipe .* failed' "$check_log" | tail -n 20 || true
+        echo "The last lines:"
+        tail -n 25 "$check_log"
+        echo "Rolling bump back."
         git restore crates/ Cargo.lock
         exit 1
+    fi
+    # The record commits only what joy wrote, the version files. The lock
+    # file refreshed for the bumped version goes in before it: left
+    # uncommitted behind the tag, it keeps this checkout changed, and the
+    # umbrella release that follows stops on that.
+    if ! git diff --quiet Cargo.lock; then
+        git add Cargo.lock
+        git commit --quiet -m "chore: Cargo.lock for the release [no-item]"
     fi
     joy release record "{{bump}}" "{{prerelease}}"
     tag=$(git describe --tags --exact-match HEAD 2>/dev/null || echo "unknown")
