@@ -1,70 +1,13 @@
+format: 2
 name: Crypt
 acronym: CRYPT
 language: en
-members:
-  claude:
-    capabilities:
-      conceive: {}
-      plan: {}
-      design: {}
-      implement: {}
-      test: {}
-      review: {}
-      document: {}
-      create: {}
-      assign: {}
-    adapter: claude
-    verify_key: 61f511603f54d91e201d2acdb3d5c5fab53e850773324abd6957271cbc3e2bde
-    attestation:
-      attester: horst.schwarz@joydev.com
-      signed_fields:
-        email: ai:claude@joy
-        capabilities:
-          conceive: {}
-          plan: {}
-          design: {}
-          implement: {}
-          test: {}
-          review: {}
-          document: {}
-          create: {}
-          assign: {}
-      signed_at: 2026-07-06T05:05:54.051797Z
-      signature: 28135f13b1dae3c17404c6ee6e4caaf8e4360efa666550ca700df4207e9e322764dcb10bc0eededcee463aba022ca9930c5f2a701c6fa668fbd507d7d643c601
-  horst.schwarz@joydev.com:
-    capabilities: all
-    verify_key: c138d2b6f4c911bb1478cbf329bc39cdbf29597652147c0c03d9a05afc468900
-    kdf_nonce: 7956afdc9245ea349e6aa4659435d546ae6a4559a96520469331a6ca609923b2
-    seed_wrap_passphrase: f701d28001e70fa29a272307db4e6e6cfbd72663ce7ddf4bc2e24de018dcc2ed82a2cd9902fd8384cccae73911805a19ceebc40c8a1f4fe185cbb781
-    seed_wrap_recovery: 647e3126c5f544594d538f4f74906c3c35b07967a9a688678d19ed0132de2936b1a57397215a18e8f55894682e188aeb72ea737c40e47122b7011f77
-    ai_delegations:
-      claude:
-        delegation_verifier: 61f511603f54d91e201d2acdb3d5c5fab53e850773324abd6957271cbc3e2bde
-        delegation_salt: a9ebdbcd382e99c35c084978d64a46004bdb0f66a9e5d4ddeaa4ae7b228442fa
-        created: 2026-05-03T10:52:15.153683Z
-  philipp@joyint.com:
-    capabilities: all
-    enrollment_verifier: ee412d16072ad637a7e441bd1f5a90aa9d9f44b8a0deefc6fa40507317d3a735:8148a733817ca334bf16537b79c57bf80c9956852f31f30cd1505c94e15067bf
-    attestation:
-      attester: horst.schwarz@joydev.com
-      signed_fields:
-        email: philipp@joyint.com
-        capabilities: all
-        otp_hash: ee412d16072ad637a7e441bd1f5a90aa9d9f44b8a0deefc6fa40507317d3a735:8148a733817ca334bf16537b79c57bf80c9956852f31f30cd1505c94e15067bf
-      signed_at: 2026-08-23T16:48:47.911458616Z
-      signature: 9d7dad2beab6d36e8709f9aa216ede8cd2934d432d0978a7eae59d28e60c7d72ba44033c57d6ea801ea16187ff4be81f8000a7673c5bc843ef6d24a7f7564c02
-  roland@joyint.com:
-    capabilities: all
-    enrollment_verifier: 2934ae7728ebdafd35cb46f2d04fbea79726cb27fff2585f69174e695b40d568:0c530e19070c38dcbb0c443cccad8efe661cdedc0cdd813c07a057d013d1ba12
-    attestation:
-      attester: horst.schwarz@joydev.com
-      signed_fields:
-        email: roland@joyint.com
-        capabilities: all
-        otp_hash: 2934ae7728ebdafd35cb46f2d04fbea79726cb27fff2585f69174e695b40d568:0c530e19070c38dcbb0c443cccad8efe661cdedc0cdd813c07a057d013d1ba12
-      signed_at: 2026-08-23T16:48:26.656145953Z
-      signature: eb07fc6304330b7d25200e33624fdb444c4f1f7044d3e1b76197be4e204c8875c62a9b563c2e05604b959a2b8a8bf4c1afc265109e507d07e0ddbc3bf4f4100e
 created: 2026-03-25T22:22:37.107652684Z
+members:
+- m-27hne52lp7
+- m-az4yagdbis
+- m-eomillxmep
+- m-smblfdpjha
 release:
   version-files:
   - path: crates/joy-crypt/Cargo.toml
