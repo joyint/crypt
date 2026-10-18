@@ -24,10 +24,10 @@ use joy_crypt::kdf::{derive_hkdf_sha256, Salt};
 ///
 /// Inputs:
 ///   - `identity_seed`: the operator's 32-byte identity seed (the value
-///     unwrapped from `seed_wrap_passphrase`, stable across passphrase
+///     unwrapped from `seed_wrap`, stable across passphrase
 ///     rotation).
 ///   - `salt`: the per-(operator, AI) `delegation_salt` recorded in
-///     `project.yaml`.
+///     the operator's member file.
 ///   - `project_id`: the canonical project id (acronym today).
 ///   - `ai_member`: the AI member's name (`claude`).
 ///

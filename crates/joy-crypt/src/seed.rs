@@ -4,10 +4,10 @@
 //! Wrapped-seed identity helpers (ADR-039).
 //!
 //! Each member holds a randomly generated 32-byte seed. The Ed25519
-//! identity keypair derives from this seed. The seed is stored in
-//! `project.yaml` as two AES-256-GCM ciphertexts:
+//! identity keypair derives from this seed. The seed is stored in the
+//! member's file under `.joy/members/` as two AES-256-GCM ciphertexts:
 //!
-//! - `seed_wrap_passphrase`: encrypted under a KEK derived from
+//! - `seed_wrap`: encrypted under a KEK derived from
 //!   `passphrase + kdf_nonce` via Argon2id.
 //! - `seed_wrap_recovery`: encrypted under a KEK derived from a
 //!   recovery key via Argon2id (same `kdf_nonce`).
@@ -148,8 +148,8 @@ pub fn unwrap_seed_with_passphrase(
     passphrase: &str,
     kdf_nonce: &Salt,
 ) -> Result<Seed, Error> {
-    let wrapped = hex::decode(wrap_hex)
-        .map_err(|e| Error::Auth(format!("invalid seed_wrap_passphrase: {e}")))?;
+    let wrapped =
+        hex::decode(wrap_hex).map_err(|e| Error::Auth(format!("invalid seed_wrap: {e}")))?;
     let kek = derive_argon2id(passphrase, kdf_nonce)?;
     let plain = wrap::unwrap(kek.as_bytes(), &wrapped)
         .map_err(|_| Error::Auth("incorrect passphrase".into()))?;
