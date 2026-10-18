@@ -1,8 +1,10 @@
-email: philipp@joyint.com
+type: person
+identity:
+  philipp@joyint.com:
+    enrollment_verifier: ee412d16072ad637a7e441bd1f5a90aa9d9f44b8a0deefc6fa40507317d3a735:8148a733817ca334bf16537b79c57bf80c9956852f31f30cd1505c94e15067bf
 capabilities: all
 origin:
   attester: horst.schwarz@joydev.com
   signed_at: 2026-08-23T16:48:47.911458616Z
   commit: a77b82b36522e9b48a22f4131a3ec1e932084b0e
-enrollment_verifier: ee412d16072ad637a7e441bd1f5a90aa9d9f44b8a0deefc6fa40507317d3a735:8148a733817ca334bf16537b79c57bf80c9956852f31f30cd1505c94e15067bf
 updated: 2026-10-16T19:20:45.847831389Z

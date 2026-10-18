@@ -1,8 +1,10 @@
-email: roland@joyint.com
+type: person
+identity:
+  roland@joyint.com:
+    enrollment_verifier: 2934ae7728ebdafd35cb46f2d04fbea79726cb27fff2585f69174e695b40d568:0c530e19070c38dcbb0c443cccad8efe661cdedc0cdd813c07a057d013d1ba12
 capabilities: all
 origin:
   attester: horst.schwarz@joydev.com
   signed_at: 2026-08-23T16:48:26.656145953Z
   commit: a77b82b36522e9b48a22f4131a3ec1e932084b0e
-enrollment_verifier: 2934ae7728ebdafd35cb46f2d04fbea79726cb27fff2585f69174e695b40d568:0c530e19070c38dcbb0c443cccad8efe661cdedc0cdd813c07a057d013d1ba12
 updated: 2026-10-16T19:20:45.847831389Z
