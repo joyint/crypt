@@ -1,0 +1,18 @@
+id: CRYPT-001A-77
+title: Evaluation to switch to Post Quantum Cryptography
+type: task
+status: new
+priority: high
+capabilities:
+- implement
+created_by: philipp@joyint.com
+created: 2026-11-15T06:58:00.168871799Z
+updated: 2026-11-15T06:58:00.168871799Z
+updated_by: philipp@joyint.com
+description: |-
+  We need to understand what switching to a post quantum cryptographic algorithm would mean, in terms of feasibility and costs. Currently we use a classical algorithm. The following elements should be considered:
+
+  * What are we currently using exactly?
+  * Since we periodically rotate the keys, what does this mean if we delay the switching?
+  * In particular, what are the risks of switching later, by the means of migration costs?
+  * What are problems when switching now? How is the performance and memory consumption. Ideally we set up a small WASM based microbenchmark, to identify the cost of Post Quantum Cryptography.
