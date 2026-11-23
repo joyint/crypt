@@ -1,0 +1,16 @@
+id: CRYPT-001A-3E
+title: A token names the job it is for, and a secret is sealed by one member for another
+type: story
+status: in-progress
+priority: high
+assignees:
+- member: claude
+capabilities:
+- plan
+- implement
+- review
+created_by: claude delegated-by:horst.schwarz@joydev.com
+created: 2026-11-23T17:53:08.691709970Z
+updated: 2026-11-23T17:53:14.050225305Z
+updated_by: claude delegated-by:horst.schwarz@joydev.com
+description: 'Implements JI-01A7-0F in crypt. joy-token: TokenIssueParams.job puts the scope job:<id> into the signed claims, job_scope reads it back. joy-crypt: sealed::seal_for / open_from / sealed_by, a plaintext sealed under the pairwise X25519 KEK of the sender''s and the recipient''s identities, bound to what it is for by info; the layout of a zone-key wrap, for any plaintext. Used by joy and by the browser (web-auth) to seal a job''s token for the platform that runs it.'
