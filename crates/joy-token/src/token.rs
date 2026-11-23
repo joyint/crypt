@@ -104,6 +104,22 @@ pub struct TokenIssueParams<'a> {
     /// in the signed claims as one more scope, [`grant_scope`] reads it
     /// back. `None` leaves it out, as every token before had it.
     pub grant: Option<&'a str>,
+    /// The one job this token is for (JI-01A7-0F): a session from it
+    /// writes that job and the items it names, nothing else. It rides in
+    /// the signed claims as one more scope, [`job_scope`] reads it back.
+    /// `None` is a token for everything its member may do.
+    pub job: Option<&'a str>,
+}
+
+/// Prefix of the scope that carries [`TokenIssueParams::job`].
+pub const SCOPE_JOB_PREFIX: &str = "job:";
+
+/// The job a token is bound to, if it names one.
+pub fn job_scope(claims: &DelegationClaims) -> Option<&str> {
+    claims
+        .scopes
+        .iter()
+        .find_map(|scope| scope.strip_prefix(SCOPE_JOB_PREFIX))
 }
 
 /// Prefix of the scope that carries [`TokenIssueParams::grant`].
@@ -128,6 +144,9 @@ pub fn create_token(keys: TokenSigningKeys<'_>, params: TokenIssueParams<'_>) ->
     let mut scopes = vec![SCOPE_AUTH.to_string(), SCOPE_CRYPT.to_string()];
     if let Some(grant) = params.grant {
         scopes.push(format!("{SCOPE_GRANT_PREFIX}{grant}"));
+    }
+    if let Some(job) = params.job {
+        scopes.push(format!("{SCOPE_JOB_PREFIX}{job}"));
     }
     let claims = DelegationClaims {
         token_id: uuid::Uuid::new_v4().to_string(),
@@ -307,6 +326,7 @@ mod tests {
                 project_id: "TST",
                 ttl,
                 grant: None,
+                job: None,
             },
         )
     }
@@ -327,6 +347,7 @@ mod tests {
                 project_id: "TST",
                 ttl: None,
                 grant: Some("abc123"),
+                job: None,
             },
         );
         let claims = validate_token(&token, &delegator_pk, &delegation_pk, "TST").unwrap();
@@ -338,6 +359,42 @@ mod tests {
 
         // and the grant cannot be swapped: it is inside the signed claims
         token.claims.scopes = vec!["auth".into(), "crypt".into(), "grant:none".into()];
+        assert!(validate_token(&token, &delegator_pk, &delegation_pk, "TST").is_err());
+    }
+
+    #[test]
+    fn a_token_names_the_job_it_is_for_under_the_signatures() {
+        let (delegator, delegator_pk) = test_keypair();
+        let (seed, delegation, delegation_pk) = fresh_delegation();
+        let mut token = create_token(
+            TokenSigningKeys {
+                delegator: &delegator,
+                delegation: &delegation,
+                delegation_seed: &seed,
+            },
+            TokenIssueParams {
+                ai_member: "claude",
+                human: "human@example.com",
+                project_id: "TST",
+                ttl: None,
+                grant: Some("abc123"),
+                job: Some("TST-JOB-0001-AA"),
+            },
+        );
+        let claims = validate_token(&token, &delegator_pk, &delegation_pk, "TST").unwrap();
+        assert_eq!(job_scope(&claims), Some("TST-JOB-0001-AA"));
+        assert_eq!(grant_scope(&claims), Some("abc123"));
+
+        // a token without one is not bound to a job
+        let plain = make_token(&delegator, &delegation, &seed, None);
+        assert_eq!(job_scope(&plain.claims), None);
+
+        // and the job cannot be taken off or swapped: it is inside the
+        // signed claims
+        token
+            .claims
+            .scopes
+            .retain(|s| !s.starts_with(SCOPE_JOB_PREFIX));
         assert!(validate_token(&token, &delegator_pk, &delegation_pk, "TST").is_err());
     }
 

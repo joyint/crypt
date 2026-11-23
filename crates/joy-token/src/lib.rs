@@ -11,6 +11,7 @@
 //! `joy_core::auth::delegation`, mapping [`TokenError`] into its own error.
 
 pub mod delegation;
+pub mod job;
 pub mod token;
 
 pub use delegation::derive_delegation_seed;
