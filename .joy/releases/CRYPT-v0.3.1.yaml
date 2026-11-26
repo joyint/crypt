@@ -1,0 +1,17 @@
+version: v0.3.1
+date: 2026-11-26
+previous: v0.3.0
+contributors:
+- id: claude delegated-by:horst.schwarz@joydev.com
+  events: 10
+  items: 2
+- id: horst.schwarz@joydev.com
+  events: 4
+  items: 2
+items:
+  stories:
+  - id: CRYPT-001A-3E
+    title: A token names the job it is for, and a secret is sealed by one member for another
+  bugs:
+  - id: CRYPT-0019-9F
+    title: joy-passphrase is not published, so joy-core cannot be uploaded to crates.io
