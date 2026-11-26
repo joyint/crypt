@@ -1,7 +1,7 @@
 id: CRYPT-0019-9F
 title: joy-passphrase is not published, so joy-core cannot be uploaded to crates.io
 type: bug
-status: review
+status: closed
 priority: critical
 assignees:
 - member: claude
@@ -10,8 +10,8 @@ capabilities:
 - review
 created_by: claude delegated-by:horst.schwarz@joydev.com
 created: 2026-10-13T15:21:49.366961950Z
-updated: 2026-10-13T18:12:59.881505044Z
-updated_by: claude delegated-by:horst.schwarz@joydev.com
+updated: 2026-11-26T08:06:47.212024456Z
+updated_by: horst.schwarz@joydev.com
 description: |-
   CRYPT-0016-B0 added the crate joy-passphrase, and joy-core and joy-cli depend on it since JOY-02CC-46 (version "0" and a path). The crate is not on crates.io (asked of the crates.io API on 2026-10-13), and nothing here would put it there:
   - the publish-crates recipe in the justfile uploads joy-crypt and joy-token only;
@@ -49,3 +49,6 @@ comments:
     [x] joyint/joy#78: joy's Cargo.lock records joy-passphrase 0.2.0; cargo build --locked -p joy-cli passes with it and was refused without it.
     Not tried, because it would publish: the upload itself. cargo publish --dry-run packed and verified the crate.
     Left as they are: the lock files of platform and app still record 0.1.0. Nothing there builds with --locked, and the release commits a changed lock file per repository.
+- author: horst.schwarz@joydev.com
+  date: 2026-11-26T08:06:47.165687089Z
+  text: Accepted by Horst on 2026-11-26.
