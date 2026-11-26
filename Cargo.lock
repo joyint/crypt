@@ -449,7 +449,7 @@ checksum = "3bd1574e617a9a6c1f8f8181bd7e841e1f20e4277607ef28945765188d6284d4"
 
 [[package]]
 name = "joy-crypt"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -468,7 +468,7 @@ dependencies = [
 
 [[package]]
 name = "joy-passphrase"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "thiserror",
  "zxcvbn",
@@ -476,7 +476,7 @@ dependencies = [
 
 [[package]]
 name = "joy-token"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "base64ct",
  "chrono",
